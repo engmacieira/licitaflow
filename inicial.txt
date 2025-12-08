@@ -1,0 +1,40 @@
+=========================================
+      CHECKLIST INICIAL (WINDOWS)
+=========================================
+
+1. CRIAR AMBIENTE VIRTUAL
+   Comando: python -m venv venv
+
+2. ATIVAR AMBIENTE VIRTUAL
+   Comando: venv\Scripts\activate
+
+3. INSTALAR DEPENDÊNCIAS BASE
+   Comando: pip install -r requirements.txt
+
+4. CONFIGURAR GIT (Primeiro Commit)
+   Comando: git init
+   Comando: git add .
+   Comando: git commit -m "feat: initial structure"
+   
+   *Lembrete: Crie o repositório no GitHub para dar o push.
+
+5. RODAR O PROJETO
+   Comando: uvicorn app.main:app --reload
+   
+6. COMANDOS ÚTEIS
+    - Rodar Testes: python -m pytest
+    - Rodar Testes com Coverage: pytest --cov=app
+    - Rodar Testes exibindo erros: pytest -vv
+    - Gerar requirements.txt atualizado: pip freeze > requirements.txt
+    - Gerar os logs do teste > log_pytest.txt 2>&1  
+    
+7. ERROS COMUNS
+    - O "Pegadinha" do VS Code (Interpretador). 
+        - Aperte Ctrl+Shift+P
+        - Digite "Python: Select Interpreter"
+
+8. CONTROLE DE VERSÃO E GITHUB
+    - git add .
+    - git commit -m "..."
+    - git push
+=========================================
