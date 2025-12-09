@@ -244,6 +244,154 @@ class AIService:
         
         return self._generate_safe_content(prompt)
     
+    def generate_etp_parceling_justification(self, dfd_object: str, draft_text: str = "", user_instructions: str = "") -> str:
+        """
+        Gera a Justificativa do Parcelamento (Regra: Súmula 247 TCU).
+        """
+        
+        rascunho = draft_text if draft_text else "A regra é o parcelamento para ampliar a competição."
+
+        prompt = f"""
+        Role: Especialista em Licitações de Braúnas.
+        
+        Formatação (CRÍTICA): Texto corrido em parágrafos. PROIBIDO usar tópicos ou listas (bullet points).
+        
+        Diretrizes de Conteúdo (Lógica de Braúnas):
+        1. Regra Geral (Parcelamento): O texto deve afirmar que o parcelamento do objeto foi a opção escolhida, em conformidade com a Súmula 247 do TCU.
+        2. Os 3 Pilares (se parcelado):
+           - "Assegurar a obtenção da proposta mais vantajosa."
+           - "Aumentar a competitividade, permitindo a participação de um maior número de fornecedores, inclusive micro e pequenas empresas."
+           - "Evitar a concentração contratual excessiva."
+        3. Exceção (Não Parcelamento): APENAS se o rascunho indicar explicitamente que o objeto é indivisível (ex: "kit único", "risco técnico"), a IA deve argumentar que o parcelamento traria "perda de economia de escala" ou "risco à integridade técnica do conjunto".
+
+        Contexto (Objeto): "{dfd_object}"
+        Observações do usuário (Decisão de parcelar ou não): "{rascunho}"
+        Instruções extras: "{user_instructions}"
+
+        Tarefa: Redija a Justificativa para Parcelamento focando na competitividade e na proposta mais vantajosa.
+        
+        Saída (Apenas o texto final):
+        """
+        
+        return self._generate_safe_content(prompt)
+    
+    def generate_etp_results(self, dfd_object: str, draft_text: str = "", user_instructions: str = "") -> str:
+        """
+        Gera o Demonstrativo de Resultados (Quantitativo vs Qualitativo).
+        """
+        
+        rascunho = draft_text if draft_text else "Melhoria da eficiência e qualidade do atendimento."
+
+        prompt = f"""
+        Role: Especialista em Licitações de Braúnas.
+        
+        Formatação (CRÍTICA): Texto corrido em parágrafos. PROIBIDO usar tópicos ou listas (bullet points).
+        
+        Diretrizes de Conteúdo (As Duas Esferas de Resultados):
+        1. Resultados Quantitativos: Focar na continuidade do serviço, padronização, redução de custos operacionais e otimização dos recursos públicos.
+        2. Resultados Qualitativos: Focar na elevação da qualidade do atendimento, aumento da confiança da população nos serviços públicos e, especialmente, na segurança sanitária e no fortalecimento das ações de saúde.
+
+        Contexto (Objeto): "{dfd_object}"
+        Resultados específicos desejados (Rascunho): "{rascunho}"
+        Instruções extras: "{user_instructions}"
+
+        Tarefa: Descreva os resultados pretendidos abordando os aspectos quantitativos (eficiência) e qualitativos (impacto social e segurança).
+        
+        Saída (Apenas o texto final):
+        """
+        
+        return self._generate_safe_content(prompt)
+
+    def generate_etp_prior_measures(self, dfd_object: str, draft_text: str = "", user_instructions: str = "") -> str:
+        """
+        Gera as Providências Prévias (Foco em celeridade vs necessidades específicas).
+        """
+        
+        rascunho = draft_text if draft_text else "Padrão: sem necessidade de obras ou mudanças físicas."
+
+        prompt = f"""
+        Role: Especialista em Licitações de Braúnas.
+        
+        Formatação (CRÍTICA): Texto corrido em parágrafos. PROIBIDO usar tópicos ou listas (bullet points).
+        
+        Diretrizes de Conteúdo (Lógica Condicional):
+        1. Cenário Padrão (Se o rascunho for vazio ou indicar simplicidade): Argumentar que não há necessidade de providências prévias significativas (obras, elétrica, etc.).
+           - Argumento obrigatório: "Os bens não demandam preparação específica da Administração para seu recebimento."
+           - Ação Administrativa: Citar apenas que a única providência necessária é a designação formal da equipe de fiscalização e gestão do contrato.
+        2. Cenário Específico (Se o rascunho citar obras/instalações): Incorpore a necessidade descrita mantendo a formalidade.
+
+        Contexto (Objeto): "{dfd_object}"
+        Providências específicas informadas (Rascunho): "{rascunho}"
+        Instruções extras: "{user_instructions}"
+
+        Tarefa: Redija as Providências Prévias. Se não houver especificidades, use o texto padrão de que não são necessárias alterações físicas, apenas a designação dos fiscais.
+        
+        Saída (Apenas o texto final):
+        """
+        
+        return self._generate_safe_content(prompt)
+    
+    def generate_etp_environmental_impacts(self, dfd_object: str, draft_text: str = "", user_instructions: str = "") -> str:
+        """
+        Gera os Impactos Ambientais (Mitigação normativa CONAMA/ANVISA).
+        """
+        
+        rascunho = draft_text if draft_text else "Geração de resíduos comuns e de saúde, gerenciáveis pelas rotinas atuais."
+
+        prompt = f"""
+        Role: Especialista em Licitações de Braúnas.
+        
+        Formatação (CRÍTICA): Texto corrido em parágrafos. PROIBIDO usar tópicos ou listas (bullet points).
+        
+        Diretrizes de Conteúdo (Lógica da "Controllability"):
+        1. Reconhecimento: Admitir que a contratação pode gerar impactos (geralmente descarte de resíduos ou embalagens).
+        2. Argumento de Controle: Afirmar categoricamente que tais impactos são "controláveis e gerenciáveis".
+        3. Fundamentação Legal (Saúde): Citar que o Município adota as rotinas previstas na Resolução CONAMA nº 358/2005 e na RDC ANVISA nº 222/2018 (Boas Práticas de Gerenciamento de Resíduos de Serviços de Saúde).
+        4. Conclusão: A contratação não traz riscos ambientais novos que não possam ser mitigados pelas rotinas já existentes.
+
+        Contexto (Objeto): "{dfd_object}"
+        Riscos específicos (Rascunho): "{rascunho}"
+        Instruções extras: "{user_instructions}"
+
+        Tarefa: Redija os Impactos Ambientais argumentando que são gerenciáveis conforme CONAMA 358/2005 e RDC ANVISA 222/2018.
+        
+        Saída (Apenas o texto final):
+        """
+        
+        return self._generate_safe_content(prompt)
+
+    def generate_etp_viability(self, dfd_object: str, draft_text: str = "", user_instructions: str = "") -> str:
+        """
+        Gera a Conclusão da Viabilidade (O 'De Acordo' final).
+        """
+        
+        rascunho = draft_text if draft_text else "A contratação é viável e oportuna."
+
+        prompt = f"""
+        Role: Especialista em Licitações de Braúnas.
+        
+        Formatação (CRÍTICA): Texto corrido em parágrafos. PROIBIDO usar tópicos ou listas (bullet points).
+        
+        Diretrizes de Conteúdo (O "Carimbo" de Aprovação):
+        1. Conclusão Categórica: Afirmar categoricamente que a contratação é "plenamente viável".
+        2. Os 4 Pilares da Viabilidade: Citar explicitamente que a viabilidade foi verificada nos aspectos:
+           - Técnico: A solução atende à necessidade.
+           - Legal: Está em conformidade com a Lei 14.133/21.
+           - Orçamentário: Há previsão (sem citar valores específicos aqui).
+           - Administrativo: A gestão é possível.
+        3. Desfecho: Recomendar o prosseguimento para o Termo de Referência.
+
+        Contexto (Objeto): "{dfd_object}"
+        Observações finais (Rascunho): "{rascunho}"
+        Instruções extras: "{user_instructions}"
+
+        Tarefa: Redija a Conclusão da Viabilidade da Contratação, afirmando que ela é viável sob os aspectos técnico, legal, econômico e administrativo.
+        
+        Saída (Apenas o texto final):
+        """
+        
+        return self._generate_safe_content(prompt)
+    
     # --- Método Auxiliar Privado (DRY) ---
     def _generate_safe_content(self, prompt: str) -> str:
         """

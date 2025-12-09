@@ -1,7 +1,9 @@
 from fastapi import APIRouter, HTTPException, status
 from app.schemas.ai_schema import (GenerateObjectRequest, GenerateObjectResponse, GenerateJustificationRequest, 
                                    GenerateETPNeedRequest, GenerateETPRequirementsRequest, GenerateETPMotivationRequest,
-                                   GenerateETPMarketAnalysisRequest, GenerateETPChoiceJustificationRequest, GenerateETPSolutionDescriptionRequest)
+                                   GenerateETPMarketAnalysisRequest, GenerateETPChoiceJustificationRequest, GenerateETPSolutionDescriptionRequest,
+                                   GenerateETPParcelingJustificationRequest, GenerateETPResultsRequest, GenerateETPPriorMeasuresRequest,
+                                   GenerateETPEnvironmentalImpactsRequest, GenerateETPViabilityRequest)
 from app.services.ai_service import AIService
 
 router = APIRouter(
@@ -119,6 +121,66 @@ def generate_etp_solution_description(request: GenerateETPSolutionDescriptionReq
         result = ai_service.generate_etp_solution_description(
             dfd_object=request.dfd_object,
             requirements_text=request.requirements_text,
+            draft_text=request.draft_text,
+            user_instructions=request.user_instructions
+        )
+        return GenerateObjectResponse(result=result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/generate/etp-parceling-justification", response_model=GenerateObjectResponse)
+def generate_etp_parceling_justification(request: GenerateETPParcelingJustificationRequest):
+    try:
+        result = ai_service.generate_etp_parceling_justification(
+            dfd_object=request.dfd_object,
+            draft_text=request.draft_text,
+            user_instructions=request.user_instructions
+        )
+        return GenerateObjectResponse(result=result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/generate/etp-results", response_model=GenerateObjectResponse)
+def generate_etp_results(request: GenerateETPResultsRequest):
+    try:
+        result = ai_service.generate_etp_results(
+            dfd_object=request.dfd_object,
+            draft_text=request.draft_text,
+            user_instructions=request.user_instructions
+        )
+        return GenerateObjectResponse(result=result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/generate/etp-prior-measures", response_model=GenerateObjectResponse)
+def generate_etp_prior_measures(request: GenerateETPPriorMeasuresRequest):
+    try:
+        result = ai_service.generate_etp_prior_measures(
+            dfd_object=request.dfd_object,
+            draft_text=request.draft_text,
+            user_instructions=request.user_instructions
+        )
+        return GenerateObjectResponse(result=result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/generate/etp-environmental-impacts", response_model=GenerateObjectResponse)
+def generate_etp_environmental_impacts(request: GenerateETPEnvironmentalImpactsRequest):
+    try:
+        result = ai_service.generate_etp_environmental_impacts(
+            dfd_object=request.dfd_object,
+            draft_text=request.draft_text,
+            user_instructions=request.user_instructions
+        )
+        return GenerateObjectResponse(result=result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/generate/etp-viability", response_model=GenerateObjectResponse)
+def generate_etp_viability(request: GenerateETPViabilityRequest):
+    try:
+        result = ai_service.generate_etp_viability(
+            dfd_object=request.dfd_object,
             draft_text=request.draft_text,
             user_instructions=request.user_instructions
         )

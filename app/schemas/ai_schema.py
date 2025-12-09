@@ -44,6 +44,31 @@ class GenerateETPSolutionDescriptionRequest(BaseModel):
     draft_text: Optional[str] = None        # Logística/Operação
     user_instructions: Optional[str] = None
 
+class GenerateETPParcelingJustificationRequest(BaseModel):
+    dfd_object: str
+    draft_text: Optional[str] = None
+    user_instructions: Optional[str] = None
+
+class GenerateETPResultsRequest(BaseModel):
+    dfd_object: str
+    draft_text: Optional[str] = None
+    user_instructions: Optional[str] = None
+    
+class GenerateETPPriorMeasuresRequest(BaseModel):
+    dfd_object: str
+    draft_text: Optional[str] = None
+    user_instructions: Optional[str] = None
+    
+class GenerateETPEnvironmentalImpactsRequest(BaseModel):
+    dfd_object: str
+    draft_text: Optional[str] = None
+    user_instructions: Optional[str] = None
+    
+class GenerateETPViabilityRequest(BaseModel):
+    dfd_object: str
+    draft_text: Optional[str] = None
+    user_instructions: Optional[str] = None
+
 class GenerateObjectResponse(BaseModel):
     result: str
     
