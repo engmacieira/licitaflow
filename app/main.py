@@ -1,12 +1,26 @@
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles # <--- Importe
-from fastapi.responses import FileResponse  # <--- Importe
+from fastapi.middleware.cors import CORSMiddleware # <--- 1. Importar isso
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from app.routers import dfd_router, etp_router, ai_router, cadastro_router
 
 app = FastAPI(
     title="LicitaFlow API",
     description="Sistema de Geração de Licitações com IA",
     version="0.1.0"
+)
+
+origins = [
+    "http://localhost:5173", # Endereço do React (Vite)
+    "http://127.0.0.1:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"], # Permite GET, POST, PUT, DELETE, etc.
+    allow_headers=["*"], # Permite enviar JSON e Tokens
 )
 
 # 1. Montando a pasta estática
