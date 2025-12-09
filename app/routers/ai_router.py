@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status
 from app.schemas.ai_schema import (GenerateObjectRequest, GenerateObjectResponse, GenerateJustificationRequest, 
                                    GenerateETPNeedRequest, GenerateETPRequirementsRequest, GenerateETPMotivationRequest,
-                                   GenerateETPMarketAnalysisRequest)
+                                   GenerateETPMarketAnalysisRequest, GenerateETPChoiceJustificationRequest, GenerateETPSolutionDescriptionRequest)
 from app.services.ai_service import AIService
 
 router = APIRouter(
@@ -93,6 +93,32 @@ def generate_etp_market_analysis(request: GenerateETPMarketAnalysisRequest):
     try:
         result = ai_service.generate_etp_market_analysis(
             dfd_object=request.dfd_object,
+            draft_text=request.draft_text,
+            user_instructions=request.user_instructions
+        )
+        return GenerateObjectResponse(result=result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/generate/etp-choice-justification", response_model=GenerateObjectResponse)
+def generate_etp_choice_justification(request: GenerateETPChoiceJustificationRequest):
+    try:
+        result = ai_service.generate_etp_choice_justification(
+            dfd_object=request.dfd_object,
+            market_analysis_context=request.market_analysis_context,
+            draft_text=request.draft_text,
+            user_instructions=request.user_instructions
+        )
+        return GenerateObjectResponse(result=result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/generate/etp-solution-description", response_model=GenerateObjectResponse)
+def generate_etp_solution_description(request: GenerateETPSolutionDescriptionRequest):
+    try:
+        result = ai_service.generate_etp_solution_description(
+            dfd_object=request.dfd_object,
+            requirements_text=request.requirements_text,
             draft_text=request.draft_text,
             user_instructions=request.user_instructions
         )

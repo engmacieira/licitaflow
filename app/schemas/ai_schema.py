@@ -32,6 +32,18 @@ class GenerateETPMarketAnalysisRequest(BaseModel):
     draft_text: Optional[str] = None       # Ex: "Pesquisa no Banco de Preços"
     user_instructions: Optional[str] = None # Ex: "Justificar não adesão"
 
+class GenerateETPChoiceJustificationRequest(BaseModel):
+    dfd_object: str
+    market_analysis_context: Optional[str] = None # O texto do tópico anterior ajuda a dar coerência
+    draft_text: Optional[str] = None
+    user_instructions: Optional[str] = None
+    
+class GenerateETPSolutionDescriptionRequest(BaseModel):
+    dfd_object: str
+    requirements_text: Optional[str] = None # Contexto novo: O que foi exigido?
+    draft_text: Optional[str] = None        # Logística/Operação
+    user_instructions: Optional[str] = None
+
 class GenerateObjectResponse(BaseModel):
     result: str
     

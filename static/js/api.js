@@ -57,6 +57,13 @@ const API = {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(dados)
             }).then(res => res.json());
+        },
+        atualizarPrecosItens: (listaItens) => {
+             return fetch(`${API_BASE_URL}/dfds/itens/precos`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(listaItens)
+            }).then(res => res.json());
         }
     },
     // --- ETPs ---
@@ -102,6 +109,18 @@ const API = {
         }),
         gerarETPLevantamento: (obj, draft, instr) => API.post("/ai/generate/etp-market-analysis", {
             dfd_object: obj,
+            draft_text: draft,
+            user_instructions: instr
+        }),
+        gerarETPJustificativaEscolha: (obj, mercadoCtx, draft, instr) => API.post("/ai/generate/etp-choice-justification", {
+            dfd_object: obj,
+            market_analysis_context: mercadoCtx,
+            draft_text: draft,
+            user_instructions: instr
+        }),
+        gerarETPSolucaoDescricao: (obj, req, draft, instr) => API.post("/ai/generate/etp-solution-description", {
+            dfd_object: obj,
+            requirements_text: req,
             draft_text: draft,
             user_instructions: instr
         })

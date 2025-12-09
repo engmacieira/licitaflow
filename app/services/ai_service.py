@@ -180,6 +180,69 @@ class AIService:
         """
         
         return self._generate_safe_content(prompt)
+
+    def generate_etp_choice_justification(self, dfd_object: str, market_analysis_context: str = "", draft_text: str = "", user_instructions: str = "") -> str:
+        """
+        Gera a Justificativa da Escolha defendendo Pregão Eletrônico + SRP.
+        """
+        
+        rascunho = draft_text if draft_text else "Adoção do Pregão Eletrônico e SRP pela eficiência."
+        contexto_mercado = f"Contexto Prévio (Análise de Mercado): {market_analysis_context}" if market_analysis_context else ""
+
+        prompt = f"""
+        Role: Especialista em Licitações de Braúnas.
+        
+        Formatação (CRÍTICA): Texto corrido em parágrafos. PROIBIDO usar tópicos (bullet points).
+        
+        Diretrizes de Conteúdo (Defesa do Modelo de Braúnas):
+        1. Defesa da Modalidade: Defender o Pregão Eletrônico como a modalidade que garante maior competitividade e transparência.
+        2. Defesa do Mecanismo (SRP): Defender o Sistema de Registro de Preços. Argumentos obrigatórios:
+           - Flexibilidade: Permite aquisições graduais conforme a necessidade.
+           - Eficiência: Evita custos de estocagem desnecessária e risco de vencimento de produtos.
+           - Economicidade: Paga-se apenas pelo que for efetivamente demandado.
+
+        Contexto (Objeto): "{dfd_object}"
+        {contexto_mercado}
+        Razões específicas do usuário: "{rascunho}"
+        Instruções extras: "{user_instructions}"
+
+        Tarefa: Redija a Justificativa da Escolha defendendo o Pregão Eletrônico e o SRP com base na eficiência e flexibilidade.
+        
+        Saída (Apenas o texto final):
+        """
+        
+        return self._generate_safe_content(prompt)
+
+    def generate_etp_solution_description(self, dfd_object: str, requirements_text: str = "", draft_text: str = "", user_instructions: str = "") -> str:
+        """
+        Gera a Descrição da Solução cobrindo o Ciclo de Vida (Aquisição -> Uso -> Descarte).
+        """
+        
+        rascunho = draft_text if draft_text else "Entrega conforme demanda e gestão pelo fiscal do contrato."
+        req_contexto = f"Requisitos Técnicos já definidos: {requirements_text}" if requirements_text else ""
+
+        prompt = f"""
+        Role: Especialista em Licitações de Braúnas.
+        
+        Formatação (CRÍTICA): Texto corrido em parágrafos. PROIBIDO usar tópicos ou listas (bullet points).
+        
+        Diretrizes de Conteúdo (O Ciclo de Vida):
+        1. O Objeto: O que é exatamente (retome o objeto).
+        2. O Modo de Execução: Como será entregue (parcelado, imediato, sob demanda, local de entrega).
+        3. A Gestão: Citar que haverá fiscalização e recebimento provisório/definitivo.
+        4. O Ciclo de Vida: Mencionar brevemente o uso pretendido e, se aplicável, o descarte adequado (logística reversa), conectando com o tópico de sustentabilidade.
+
+        Contexto (Objeto): "{dfd_object}"
+        {req_contexto}
+        Instruções logísticas do usuário: "{rascunho}"
+        Instruções extras: "{user_instructions}"
+
+        Tarefa: Descreva a Solução como um todo, considerando o ciclo de vida do objeto (aquisição, entrega, uso e descarte) e a gestão contratual.
+        
+        Saída (Apenas o texto final):
+        """
+        
+        return self._generate_safe_content(prompt)
     
     # --- Método Auxiliar Privado (DRY) ---
     def _generate_safe_content(self, prompt: str) -> str:

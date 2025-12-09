@@ -4,7 +4,7 @@ from typing import List
 
 from app.core.database import get_db
 from app.repositories.dfd_repository import DFDRepository
-from app.schemas.dfd_schema import DFDCreate, DFDResponse, DFDUpdate
+from app.schemas.dfd_schema import DFDCreate, DFDResponse, DFDUpdate, DFDItemUpdatePrice
 
 # O prefixo define que todas as rotas aqui começam com /dfds
 router = APIRouter(
@@ -57,3 +57,9 @@ def update_dfd(dfd_id: int, dfd_update: DFDUpdate, db: Session = Depends(get_db)
         )
         
     return updated_dfd
+
+@router.put("/itens/precos", status_code=status.HTTP_200_OK)
+def update_dfd_item_prices(itens: List[DFDItemUpdatePrice], db: Session = Depends(get_db)):
+    """Recebe uma lista de {id, valor} e atualiza no banco."""
+    DFDRepository.update_item_prices(db, itens)
+    return {"message": "Preços atualizados com sucesso"}

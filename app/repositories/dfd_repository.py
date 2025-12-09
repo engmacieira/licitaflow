@@ -79,3 +79,19 @@ class DFDRepository:
         except Exception as e:
             db.rollback()
             raise e
+        
+    @staticmethod
+    def update_item_prices(db: Session, itens_data: list):
+        """Atualiza o preço unitário de uma lista de itens."""
+        try:
+            for item in itens_data:
+                # Busca o item no banco pelo ID dele
+                db_item = db.query(DFDItem).filter(DFDItem.id == item.id).first()
+                if db_item:
+                    db_item.valor_unitario_estimado = item.valor_unitario_estimado
+            
+            db.commit()
+            return True
+        except Exception as e:
+            db.rollback()
+            raise e

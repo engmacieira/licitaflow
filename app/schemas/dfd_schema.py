@@ -72,6 +72,10 @@ class DFDResponse(DFDBase):
     id: int
     is_active: bool
     
+class DFDItemUpdatePrice(BaseModel):
+    id: int # ID do item (dfd_itens.id)
+    valor_unitario_estimado: float
+    
     itens: List[DFDItemResponse] = []
     equipe: List[DFDEquipeResponse] = []
     # Configuração necessária para ler do Banco

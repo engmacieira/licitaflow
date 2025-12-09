@@ -15,21 +15,48 @@ const ETPController = {
         const app = document.getElementById('app-content');
         app.innerHTML = '<div class="text-center mt-5"><span class="spinner-ai"></span> Carregando Contexto...</div>';
         
-        // Agora o 'dfd' traz a lista de itens graças à mudança no Schema!
-        const dfd = await API.dfd.buscarPorId(dfdId);
+        const [dfd, secretarias, dotacoes] = await Promise.all([
+            API.dfd.buscarPorId(dfdId),
+            API.cadastros.listarSecretarias(),
+            API.cadastros.listarDotacoes()
+        ]);
 
-        // --- MONTAR TABELA DE ITENS (Visualização) ---
-        let linhasItens = "";
+        const getSecNome = (id) => secretarias.find(s => s.id === id)?.nome || "Secretaria Solicitante";
+        
+        const getDotacaoTexto = () => {
+            if(!dfd.dotacoes || dfd.dotacoes.length === 0) return "(Definir dotação)";
+            return dfd.dotacoes.map(d => {
+                const dotReal = dotacoes.find(x => x.id === d.dotacao_id);
+                return dotReal ? `${dotReal.numero} (${dotReal.nome})` : d.dotacao_id;
+            }).join(', ');
+        };
+
+        let linhasTabela = "";
         if (dfd.itens && dfd.itens.length > 0) {
-            linhasItens = dfd.itens.map(i => `
+            linhasTabela = dfd.itens.map((item, index) => `
                 <tr>
-                    <td>${i.item_catalogo ? i.item_catalogo.nome : 'Item ' + i.item_catalogo_id}</td>
-                    <td>${i.item_catalogo ? i.item_catalogo.unidade_medida : 'UN'}</td>
-                    <td class="text-center">${i.quantidade}</td>
+                    <td>${item.item_catalogo ? item.item_catalogo.nome : 'Item ' + item.item_catalogo_id}</td>
+                    <td class="text-center">${item.item_catalogo ? item.item_catalogo.unidade_medida : 'UN'}</td>
+                    <td class="text-center">
+                        <input type="number" class="form-control form-control-sm text-center qtd-item" 
+                               data-index="${index}" value="${item.quantidade}" readonly>
+                    </td>
+                    <td>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text">R$</span>
+                            <input type="number" class="form-control valor-item" 
+                                   data-id="${item.id}" data-index="${index}" 
+                                   value="${item.valor_unitario_estimado}" 
+                                   onchange="ETPController.recalcularTotal()" step="0.01">
+                        </div>
+                    </td>
+                    <td class="text-end fw-bold">
+                        R$ <span id="total-linha-${index}">0,00</span>
+                    </td>
                 </tr>
             `).join('');
         } else {
-            linhasItens = '<tr><td colspan="3" class="text-center text-muted">Nenhum item vinculado a este DFD.</td></tr>';
+            linhasTabela = '<tr><td colspan="5" class="text-center text-muted">Nenhum item cadastrado no DFD.</td></tr>';
         }
 
         const TEXTO_PADRAO_PCA = "Até o presente momento não havia sido publicado o Plano Anual de Contratações do município de Braúnas/MG.";
@@ -138,10 +165,81 @@ const ETPController = {
                         </div>
                     </div>
 
+                    <div class="card mb-3 border-secondary">
+                        <div class="card-header bg-secondary text-white">
+                            7. Justificativa da Escolha da Solução (IA)
+                        </div>
+                        <div class="card-body">
+                            <div class="ai-draft-box mb-2">
+                                <input class="form-control mb-1" id="draft-escolha" placeholder="Motivo específico (ex: maior competitividade)...">
+                                <button class="btn btn-sm btn-dark" onclick="ETPController.gerarJustificativaEscolhaIA()">✨ Defender SRP (Pregão)</button>
+                                <span id="loading-escolha" class="spinner-ai" style="display:none"></span>
+                            </div>
+                            <textarea class="form-control" id="justificativa_escolha" rows="5">${etp.justificativa_escolha || ''}</textarea>
+                        </div>
+                    </div>
+
+                    <div class="card mb-3 border-secondary">
+                        <div class="card-header bg-secondary text-white">
+                            8. Descrição da Solução Como um Todo (Ciclo de Vida - IA)
+                        </div>
+                        <div class="card-body">
+                            <div class="ai-draft-box mb-2">
+                                <label>Logística e Ciclo de Vida (Rascunho)</label>
+                                <input class="form-control mb-1" id="draft-solucao-ciclo" placeholder="Ex: entrega parcelada na sede, descarte ecológico...">
+                                <button class="btn btn-sm btn-light border" onclick="ETPController.gerarSolucaoCicloVidaIA()">✨ Definir Ciclo de Vida</button>
+                                <span id="loading-sol-ciclo" class="spinner-ai" style="display:none"></span>
+                            </div>
+                            <textarea class="form-control" id="descricao_solucao" rows="6">${etp.descricao_solucao || ''}</textarea>
+                        </div>
+                    </div>
+
+                    <div class="card mb-3 border-dark">
+                        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                            <span>9. Estimativa de Custos e Dotação</span>
+                            <button class="btn btn-sm btn-light text-dark" onclick="ETPController.gerarTextoEstimativa()">
+                                🔄 Gerar Texto com Base na Tabela
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            
+                            <h6 class="text-muted">Memória de Cálculo</h6>
+                            <div class="table-responsive mb-3">
+                                <table class="table table-bordered table-sm align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Descrição</th>
+                                            <th width="80">Und.</th>
+                                            <th width="100">Qtd.</th>
+                                            <th width="150">Valor Unit.</th>
+                                            <th width="150" class="text-end">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${linhasTabela}
+                                    </tbody>
+                                    <tfoot class="table-light">
+                                        <tr>
+                                            <td colspan="4" class="text-end fw-bold">VALOR TOTAL ESTIMADO:</td>
+                                            <td class="text-end fw-bold text-success" id="grand-total" data-value="0">R$ 0,00</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                            <small class="text-muted">⚠️ Ao salvar o ETP, os preços unitários acima serão atualizados no DFD automaticamente.</small>
+
+                            <hr>
+
+                            <label class="fw-bold mt-2">Texto da Estimativa (Jurídico)</label>
+                            <textarea class="form-control" id="estimativa_custos" rows="8">${etp.estimativa_custos || ''}</textarea>
+                        </div>
+                    </div>
+
                     <div class="text-end"><button class="btn btn-success btn-lg" onclick="ETPController.salvar()">💾 Salvar ETP</button></div>
                 </form>
             </div>
         `;
+        ETPController.recalcularTotal();
     },
 
     salvar: async () => {
@@ -152,7 +250,11 @@ const ETPController = {
             descricao_solucao: document.getElementById('solucao').value,
             requisitos_tecnicos: document.getElementById('requisitos').value,
             motivacao_contratacao: document.getElementById('motivacao').value,
-            levantamento_mercado: document.getElementById('levantamento_mercado').value
+            levantamento_mercado: document.getElementById('levantamento_mercado').value,
+            justificativa_escolha: document.getElementById('justificativa_escolha').value,
+            descricao_solucao_ciclo_vida: document.getElementById('descricao_solucao').value,
+            estimativa_custos: document.getElementById('estimativa_custos').value
+
         };
         const resp = await API.etp.atualizar(id, dados);
         if(resp) alert("✅ ETP Salvo!");
@@ -206,5 +308,91 @@ const ETPController = {
         document.getElementById('loading-mercado').style.display = 'none';
         
         if (res && res.result) document.getElementById('levantamento_mercado').value = res.result;
-    }
+    },
+    gerarJustificativaEscolhaIA: async () => {
+        const obj = document.getElementById('ctx-objeto').innerText;
+        // Pegamos o texto gerado no passo anterior para dar contexto
+        const mercadoCtx = document.getElementById('levantamento_mercado').value;
+        const draft = document.getElementById('draft-escolha').value;
+        
+        document.getElementById('loading-escolha').style.display = 'inline-block';
+        
+        const res = await API.ai.gerarETPJustificativaEscolha(obj, mercadoCtx, draft, "");
+        
+        document.getElementById('loading-escolha').style.display = 'none';
+        
+        if (res && res.result) document.getElementById('justificativa_escolha').value = res.result;
+    },
+    gerarSolucaoCicloVidaIA: async () => {
+        const obj = document.getElementById('ctx-objeto').innerText;
+        // Pega os requisitos (Card 4) para garantir que a solução técnica bata com a especificação
+        const req = document.getElementById('requisitos').value; 
+        const draft = document.getElementById('draft-solucao-ciclo').value;
+
+        // Validação simples
+        if(!req) alert("Recomendação: Gere os Requisitos Técnicos (Item 4) antes para dar mais contexto à IA.");
+
+        document.getElementById('loading-sol-ciclo').style.display = 'inline-block';
+        
+        // Chama a rota específica do Ciclo de Vida
+        const res = await API.ai.gerarETPSolucaoDescricao(obj, req, draft, "");
+        
+        document.getElementById('loading-sol-ciclo').style.display = 'none';
+        
+        if(res && res.result) document.getElementById('descricao_solucao').value = res.result;
+    },
+    recalcularTotal: () => {
+        let grandTotal = 0;
+        const inputsValor = document.querySelectorAll('.valor-item');
+        
+        inputsValor.forEach(input => {
+            const index = input.dataset.index;
+            // Pega quantidade e valor (converte para float, ou 0 se vazio)
+            const qtd = parseFloat(document.querySelector(`.qtd-item[data-index="${index}"]`).value) || 0;
+            const valor = parseFloat(input.value) || 0;
+            
+            const totalLinha = qtd * valor;
+            grandTotal += totalLinha;
+            
+            // Atualiza visualmente a linha (formatação R$)
+            document.getElementById(`total-linha-${index}`).innerText = totalLinha.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+        });
+
+        // Atualiza Total Geral
+        const elTotal = document.getElementById('grand-total');
+        elTotal.innerText = grandTotal.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
+        elTotal.dataset.value = grandTotal; // Guarda valor numérico para contas
+    },
+
+    gerarTextoEstimativa: () => {
+        // Pega valores
+        const total = parseFloat(document.getElementById('grand-total').dataset.value) || 0;
+        const totalFormatado = total.toLocaleString('pt-BR', {style: 'currency', currency: 'BRL'});
+        const secretaria = document.getElementById('secretaria_nome').value;
+        const dotacao = document.getElementById('dotacao_texto').value;
+
+        // Monta Tabela em Texto (Para ficar bonito no documento final)
+        let tabelaTexto = "";
+        document.querySelectorAll('.valor-item').forEach(input => {
+            const row = input.closest('tr');
+            const nome = row.cells[0].innerText;
+            const und = row.cells[1].innerText;
+            const qtd = row.cells[2].querySelector('input').value;
+            const val = parseFloat(input.value).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+            const tot = row.cells[4].innerText.replace("R$ ", ""); // Pega texto visual
+            
+            tabelaTexto += `- ${nome} (${und}): ${qtd} x R$ ${val} = R$ ${tot}\n`;
+        });
+
+        // Template Braúnas
+        const texto = `O preço estimado da contratação foi definido através da média obtida entre as pesquisas de preços em anexo, mediante a utilização dos parâmetros indicados no inciso I e II do Art. 23º da Lei Federal n° 14.133 de 2021.
+
+O valor total estimado para a contratação é de ${totalFormatado}, conforme detalhamento abaixo:
+
+${tabelaTexto}
+
+A despesa decorrente desta contratação correrá à conta das dotações orçamentárias vigentes, especificamente nas fichas indicadas pela ${secretaria}: ${dotacao}, ou outras que vierem a substituí-las, respeitando a disponibilidade financeira do exercício.`;
+
+        document.getElementById('estimativa_custos').value = texto;
+    },
 };
