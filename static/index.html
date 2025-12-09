@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LicitaFlow - Gestão Inteligente</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="d-flex">
+    <div class="sidebar d-flex flex-column p-3" style="width: 250px;">
+        <h4 class="text-center mb-4">LicitaFlow 🤖</h4>
+        <ul class="nav nav-pills flex-column mb-auto">
+            <li class="nav-item">
+                <a href="#" class="nav-link active" onclick="Router.carregarDashboard()">
+                    📊 Dashboard
+                </a>
+            </li>
+            <li>
+                <a href="#" class="nav-link" onclick="Router.carregarNovoDFD()">
+                    📝 Novo DFD
+                </a>
+            </li>
+            <li>
+                <a href="#" class="nav-link" onclick="Router.carregarMeusProcessos()">
+                    📁 Meus Processos
+                </a>
+            </li>
+            <hr>
+            <li>
+                <a href="#" class="nav-link" onclick="alert('Use o Swagger por enquanto')">
+                    ⚙️ Cadastros
+                </a>
+            </li>
+        </ul>
+        <div class="mt-auto text-center text-muted small">
+            v0.1.0 Alpha
+        </div>
+    </div>
+
+    <div class="content flex-grow-1">
+        <div id="app-content">
+            <div class="container">
+                <h2>Bem-vindo ao LicitaFlow</h2>
+                <p class="lead">Selecione uma opção no menu para começar.</p>
+                
+                <div class="row mt-4">
+                    <div class="col-md-4">
+                        <div class="card text-white bg-primary mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">DFDs Criados</h5>
+                                <p class="card-text display-4" id="dash-count-dfd">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/api.js"></script>
+
+<script src="/static/js/modules/dashboard.js"></script>
+<script src="/static/js/modules/dfd.js"></script>
+<script src="/static/js/modules/etp.js"></script>
+
+<script src="/static/js/router.js"></script>
+
+<script>
+    // Inicialização
+    document.addEventListener("DOMContentLoaded", () => {
+        AppRouter.init(); // Inicia pelo Dashboard
+    });
+</script>
+
+</body>
+</html>

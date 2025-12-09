@@ -23,7 +23,7 @@
    
 6. COMANDOS ÚTEIS
     - Rodar Testes: python -m pytest
-    - Rodar Testes com Coverage: pytest --cov=app
+    - Rodar Testes com Coverage: python -m pytest --cov=app
     - Rodar Testes exibindo erros: pytest -vv
     - Gerar requirements.txt atualizado: pip freeze > requirements.txt
     - Gerar os logs do teste > log_pytest.txt 2>&1  
