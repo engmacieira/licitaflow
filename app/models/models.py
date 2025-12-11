@@ -1,11 +1,10 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Float, Date
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Numeric, Date, CHAR
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime
 
-# Base do SQLAlchemy
 Base = declarative_base()
 
-# --- MIXIN (PADRÃO DRY) ---
+# --- MIXIN ---
 class BaseModel(Base):
     __abstract__ = True
     id = Column(Integer, primary_key=True, index=True)
@@ -13,97 +12,139 @@ class BaseModel(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_active = Column(Boolean, default=True)
 
-# --- CADASTROS BÁSICOS ---
+# --- CADASTROS (Mantidos) ---
+class UnidadeRequisitante(BaseModel):
+    __tablename__ = "unidades_requisitantes"
+    nome = Column(String(255), nullable=False, unique=True)
+    sigla = Column(String(20), nullable=True) 
+    codigo_administrativo = Column(String(20))
+    unidade_pai_id = Column(Integer, ForeignKey("unidades_requisitantes.id"), nullable=True)
+    sub_unidades = relationship("UnidadeRequisitante")
 
-class Secretaria(BaseModel):
-    __tablename__ = "secretarias"
-    nome = Column(String, nullable=False)
-    sigla = Column(String, nullable=True)
+class AgenteResponsavel(BaseModel):
+    __tablename__ = "agentes_responsaveis"
+    nome = Column(String(255), nullable=False)
+    cpf = Column(String(11), unique=True, nullable=True)
+    email = Column(String(255), unique=True, index=True)
+    telefone = Column(String(20), nullable=True)
+    matricula = Column(String(50), nullable=True)
+    cargo = Column(String(100), nullable=True)
 
-class Agente(BaseModel):
-    __tablename__ = "agentes"
-    nome = Column(String, nullable=False)
-    cargo = Column(String, nullable=True)
-    matricula = Column(String, nullable=True)
-    email = Column(String, unique=True, index=True)
-    telefone = Column(String, nullable=True)
+class Fornecedor(BaseModel):
+    __tablename__ = "fornecedores"
+    razao_social = Column(String(255), nullable=False)
+    nome_fantasia = Column(String(255))
+    cpf_cnpj = Column(String(18), unique=True, nullable=False)
+    email = Column(String(255))
+    telefone = Column(String(20))
 
-class ItemCatalogo(BaseModel):
-    __tablename__ = "itens_catalogo"
-    nome = Column(String, nullable=False)
-    unidade_medida = Column(String, nullable=False)
+# --- TAXONOMIA (Mantida) ---
+class Categoria(BaseModel):
+    __tablename__ = "categorias"
+    nome = Column(String(150), nullable=False, unique=True)
+    codigo_taxonomia = Column(CHAR(2), nullable=False, unique=True)
+    grupos = relationship("Grupo", back_populates="categoria")
 
-class Dotacao(BaseModel):
-    __tablename__ = "dotacoes"
-    numero = Column(String, nullable=False)
-    nome = Column(String, nullable=True)
+class Grupo(BaseModel):
+    __tablename__ = "grupos"
+    categoria_id = Column(Integer, ForeignKey("categorias.id"), nullable=False)
+    codigo = Column(CHAR(2), nullable=False)
+    nome = Column(String(150), nullable=False)
+    categoria = relationship("Categoria", back_populates="grupos")
+    subgrupos = relationship("Subgrupo", back_populates="grupo")
 
-# --- DOCUMENTOS DO FLUXO ---
+class Subgrupo(BaseModel):
+    __tablename__ = "subgrupos"
+    grupo_id = Column(Integer, ForeignKey("grupos.id"), nullable=False)
+    codigo = Column(CHAR(2), nullable=False)
+    nome = Column(String(150), nullable=False)
+    grupo = relationship("Grupo", back_populates="subgrupos")
+    itens = relationship("CatalogoItem", back_populates="subgrupo")
+
+class CatalogoItem(BaseModel):
+    __tablename__ = "catalogo_itens"
+    subgrupo_id = Column(Integer, ForeignKey("subgrupos.id"), nullable=False)
+    nome_item = Column(String(255), nullable=False)
+    unidade_medida = Column(String(50), nullable=False)
+    tipo = Column(String(20), nullable=False)
+    codigo_catmat_catser = Column(String(50))
+    numero_sequencial_taxonomia = Column(CHAR(4), nullable=False)
+    codigo_identificacao_completo = Column(String(10), unique=True)
+    descricao_detalhada = Column(Text)
+    subgrupo = relationship("Subgrupo", back_populates="itens")
+
+# --- DOCUMENTOS (ALTERADOS) ---
 
 class DFD(BaseModel):
     __tablename__ = "dfds"
     
-    # Dados de Cabeçalho
-    numero = Column(String, index=True)
-    ano = Column(Integer)
+    numero = Column(Integer, nullable=True)
+    ano = Column(Integer, nullable=True)
+    numero_protocolo_string = Column(String(50), index=True)
+    
     data_req = Column(Date)
-    
-    # Relacionamentos Simples (FK)
-    secretaria_id = Column(Integer, ForeignKey("secretarias.id"))
-    responsavel_id = Column(Integer, ForeignKey("agentes.id"))
-    # REMOVIDO: dotacao_id (pois já temos a tabela de relacionamento N-N abaixo)
-    
-    # Campos de Texto
+    descricao_sucinta = Column(String(255))
     objeto = Column(Text)
     justificativa = Column(Text)
     
-    # Flags de fluxo
+    unidade_requisitante_id = Column(Integer, ForeignKey("unidades_requisitantes.id"))
+    responsavel_id = Column(Integer, ForeignKey("agentes_responsaveis.id"))
+    
+    # MUDANÇA 1: DFD aponta para ETP (N:1)
+    etp_id = Column(Integer, ForeignKey("etps.id"), nullable=True)
+    
     contratacao_vinculada = Column(Boolean, default=False)
-    data_contratacao = Column(Text, nullable=True) # Mantive Text conforme seu pedido
+    data_contratacao = Column(Text, nullable=True)
+    status = Column(String(50), default='Rascunho') 
     
-    # Relacionamentos Inversos (ORM)
-    itens = relationship("DFDItem", back_populates="dfd")
+    unidade_requisitante = relationship("UnidadeRequisitante")
+    responsavel = relationship("AgenteResponsavel")
+    
+    itens = relationship("ItemDFD", back_populates="dfd", cascade="all, delete-orphan")
     equipe = relationship("DFDEquipe", back_populates="dfd")
-    
-    # CORREÇÃO AQUI: Adicionada a relação com as dotações
     dotacoes = relationship("DFDDotacao", back_populates="dfd")
     
-    etp = relationship("ETP", back_populates="dfd", uselist=False)
+    # Relacionamento com ETP (Agora o DFD "pertence" a um Planejamento/ETP)
+    etp = relationship("ETP", back_populates="dfds")
 
-class DFDItem(BaseModel):
-    __tablename__ = "dfd_itens"
+class ItemDFD(BaseModel):
+    __tablename__ = "itens_dfd"
     dfd_id = Column(Integer, ForeignKey("dfds.id"))
-    item_catalogo_id = Column(Integer, ForeignKey("itens_catalogo.id"))
-    quantidade = Column(Float)
-    valor_unitario_estimado = Column(Float)
+    catalogo_item_id = Column(Integer, ForeignKey("catalogo_itens.id"))
+    quantidade = Column(Numeric(15,3)) 
+    valor_unitario_estimado = Column(Numeric(15,2))
+    complemento_descricao = Column(Text, nullable=True)
     
     dfd = relationship("DFD", back_populates="itens")
-    item_catalogo = relationship("ItemCatalogo")
+    catalogo_item = relationship("CatalogoItem")
 
 class DFDEquipe(BaseModel):
     __tablename__ = "dfd_equipe"
     dfd_id = Column(Integer, ForeignKey("dfds.id"))
-    agente_id = Column(Integer, ForeignKey("agentes.id"))
-    papel = Column(String)
-    
+    agente_id = Column(Integer, ForeignKey("agentes_responsaveis.id"))
+    papel = Column(String(50))
     dfd = relationship("DFD", back_populates="equipe")
-    agente = relationship("Agente")
+    agente = relationship("AgenteResponsavel")
+
+class Dotacao(BaseModel):
+    __tablename__ = "dotacoes"
+    exercicio = Column(Integer, nullable=False)
+    numero = Column(String(100), nullable=False)
+    nome = Column(String(255), nullable=True)
 
 class DFDDotacao(BaseModel):
-    """Tabela Pivot: Dotacao DFD"""
-    __tablename__ = "dfd_dotacoes" # CORREÇÃO: Grafia correta
-    
+    __tablename__ = "dfd_dotacoes"
     dfd_id = Column(Integer, ForeignKey("dfds.id"))
     dotacao_id = Column(Integer, ForeignKey("dotacoes.id"))
-    
-    # CORREÇÃO: back_populates aponta para 'dotacoes' no DFD, e não 'equipe'
-    dfd = relationship("DFD", back_populates="dotacoes") 
+    dfd = relationship("DFD", back_populates="dotacoes")
     dotacao = relationship("Dotacao")
+
+# --- ETP E PLANEJAMENTO (ALTERADOS) ---
 
 class ETP(BaseModel):
     __tablename__ = "etps"
-    dfd_id = Column(Integer, ForeignKey("dfds.id"), unique=True)
     
+    # Campos de Texto (IA)
     descricao_necessidade = Column(Text)
     previsao_pca = Column(Text)
     requisitos_tecnicos = Column(Text)
@@ -117,47 +158,73 @@ class ETP(BaseModel):
     providencias_previas = Column(Text)
     impactos_ambientais = Column(Text)
     viabilidade = Column(Boolean)
+    conclusao_viabilidade = Column(Text)
     
-    dfd = relationship("DFD", back_populates="etp")
+    # Relacionamentos
+    dfds = relationship("DFD", back_populates="etp") 
+    itens = relationship("ItemETP", back_populates="etp", cascade="all, delete-orphan")
+    
+    # NOVOS RELACIONAMENTOS (Consolidação)
+    equipe = relationship("ETPEquipe", back_populates="etp", cascade="all, delete-orphan")
+    dotacoes = relationship("ETPDotacao", back_populates="etp", cascade="all, delete-orphan")
+    
     matriz = relationship("MatrizRisco", back_populates="etp", uselist=False)
+
+class ItemETP(BaseModel):
+    __tablename__ = "itens_etp"
+    etp_id = Column(Integer, ForeignKey("etps.id"))
+    catalogo_item_id = Column(Integer, ForeignKey("catalogo_itens.id"))
+    
+    quantidade_total = Column(Numeric(15,3)) 
+    valor_unitario_referencia = Column(Numeric(15,2))
+    valor_total_estimado = Column(Numeric(15,2))
+    
+    etp = relationship("ETP", back_populates="itens")
+    catalogo_item = relationship("CatalogoItem")
+
+# --- NOVAS TABELAS ---
+
+class ETPEquipe(BaseModel):
+    """Equipe responsável pelo Planejamento (Pode ser a soma das equipes dos DFDs)"""
+    __tablename__ = "etp_equipe"
+    
+    etp_id = Column(Integer, ForeignKey("etps.id"))
+    agente_id = Column(Integer, ForeignKey("agentes_responsaveis.id"))
+    papel = Column(String(50)) # Ex: 'Membro da Equipe de Planejamento'
+    
+    etp = relationship("ETP", back_populates="equipe")
+    agente = relationship("AgenteResponsavel")
+
+class ETPDotacao(BaseModel):
+    """As dotações que cobrirão a despesa consolidada"""
+    __tablename__ = "etp_dotacoes"
+    
+    etp_id = Column(Integer, ForeignKey("etps.id"))
+    dotacao_id = Column(Integer, ForeignKey("dotacoes.id"))
+    
+    etp = relationship("ETP", back_populates="dotacoes")
+    dotacao = relationship("Dotacao")
 
 class MatrizRisco(BaseModel):
     __tablename__ = "matrizes_risco"
     etp_id = Column(Integer, ForeignKey("etps.id"), unique=True)
-    
     riscos = relationship("ItemRisco", back_populates="matriz")
-    
     etp = relationship("ETP", back_populates="matriz")
     tr = relationship("TR", back_populates="matriz", uselist=False)
 
 class ItemRisco(BaseModel):
     __tablename__ = "itens_risco"
     matriz_id = Column(Integer, ForeignKey("matrizes_risco.id"))
-    
     descricao_risco = Column(Text)
-    probabilidade = Column(String)
-    impacto = Column(String)
+    probabilidade = Column(String(50))
+    impacto = Column(String(50))
     medida_preventiva = Column(Text)
     responsavel = Column(Text)
-    
     matriz = relationship("MatrizRisco", back_populates="riscos")
 
 class TR(BaseModel):
     __tablename__ = "trs"
     matriz_id = Column(Integer, ForeignKey("matrizes_risco.id"), unique=True)
-    
     fundamentacao = Column(Text)
-    descricao_solucao = Column(Text)
-    sustentabilidade = Column(Text)
-    estrategia_execucao = Column(Text)
-    gestao_contrato = Column(Text)
-    criterio_recebimento = Column(Text)
-    criterio_liquidacao = Column(Text)
-    criterio_pagamento = Column(Text)
-    forma_selecao = Column(Text)
-    habilitacao = Column(Text)
-    obrigacoes_contratante = Column(Text)
-    obrigacoes_contratada = Column(Text)
-    apresentacao_amostras = Column(Text)
-    
+    # ... outros campos ...
     matriz = relationship("MatrizRisco", back_populates="tr")

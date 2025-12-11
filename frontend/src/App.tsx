@@ -3,7 +3,8 @@ import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { MeusProcessos } from './pages/MeusProcessos';
 import { DfdForm } from './pages/DfdForm';
-import { EtpForm } from './pages/EtpForm'; // <--- 1. Importe o componente
+import { EtpForm } from './pages/EtpForm';
+import { Planejamento } from './pages/Planejamento'; 
 
 function App() {
   return (
@@ -15,6 +16,9 @@ function App() {
           <Route path="/novo-dfd" element={<DfdForm />} />
           <Route path="/dfd/:id" element={<DfdForm />} />
           
+          {/* Rota de Planejamento */}
+          <Route path="/planejamento" element={<Planejamento />} />
+
           {/* 2. Registre a nova rota aqui */}
           <Route path="/etp/:dfdId" element={<EtpForm />} />
         </Routes>

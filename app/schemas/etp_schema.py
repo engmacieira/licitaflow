@@ -1,7 +1,45 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Optional
+from typing import Optional, List
+from app.schemas.cadastro_schema import ItemCatalogoResponse, AgenteResponsavelResponse, DotacaoResponse
 
-# Base com todos os campos de texto do ETP (conforme seu models.py)
+# --- ITENS ESTRUTURAIS ---
+class ItemETPBase(BaseModel):
+    catalogo_item_id: int
+    quantidade_total: float
+    valor_unitario_referencia: float = 0.0
+    valor_total_estimado: float = 0.0
+
+class ItemETPUpdatePrice(BaseModel):
+    id: int
+    valor_unitario_referencia: float
+
+class ItemETPResponse(ItemETPBase):
+    id: int
+    catalogo_item: Optional[ItemCatalogoResponse] = None # Isso garante que o nome do item vá pro frontend
+    model_config = ConfigDict(from_attributes=True)
+
+class ETPEquipeBase(BaseModel):
+    agente_id: int
+    papel: str
+
+class ETPEquipeResponse(ETPEquipeBase):
+    id: int
+    agente: Optional[AgenteResponsavelResponse] = None
+    model_config = ConfigDict(from_attributes=True)
+
+class ETPDotacaoBase(BaseModel):
+    dotacao_id: int
+
+class ETPDotacaoResponse(ETPDotacaoBase):
+    id: int
+    dotacao: Optional[DotacaoResponse] = None
+    model_config = ConfigDict(from_attributes=True)
+
+# --- CONSOLIDAÇÃO ---
+class ETPConsolidarRequest(BaseModel):
+    dfd_ids: list[int]
+
+# --- ETP PRINCIPAL ---
 class ETPBase(BaseModel):
     descricao_necessidade: Optional[str] = None
     previsao_pca: Optional[str] = None
@@ -16,19 +54,21 @@ class ETPBase(BaseModel):
     providencias_previas: Optional[str] = None
     impactos_ambientais: Optional[str] = None
     viabilidade: bool = False
+    conclusao_viabilidade: Optional[str] = None
 
-# Para criar, precisamos saber de qual DFD ele é
 class ETPCreate(ETPBase):
-    dfd_id: int
+    pass
 
-# Para atualizar, qualquer campo é opcional
 class ETPUpdate(ETPBase):
     pass
 
-# O que devolvemos para o frontend
 class ETPResponse(ETPBase):
     id: int
-    dfd_id: int
     is_active: bool
+    
+    # LISTAS (Fundamental estarem aqui)
+    itens: List[ItemETPResponse] = []
+    equipe: List[ETPEquipeResponse] = []
+    dotacoes: List[ETPDotacaoResponse] = []
     
     model_config = ConfigDict(from_attributes=True)

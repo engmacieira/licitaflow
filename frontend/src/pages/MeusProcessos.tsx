@@ -1,131 +1,65 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DfdService, type DFD } from '../services/api';
-import { FileText, Edit, Trash2, FileCode, Plus } from 'lucide-react';
+import { FolderOpen, Plus } from 'lucide-react';
+import { ProcessoCard } from '../components/processos/ProcessoCard';
 
 export function MeusProcessos() {
+  const navigate = useNavigate();
   const [processos, setProcessos] = useState<DFD[]>([]);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
-    carregar();
+    loadData();
   }, []);
 
-  async function carregar() {
+  async function loadData() {
     try {
-      const dados = await DfdService.listar();
-      setProcessos(dados);
+      const data = await DfdService.listar();
+      setProcessos(data);
     } catch (error) {
-      console.error("Erro ao carregar lista:", error);
-      alert("Erro de conexão com o backend.");
+      alert("Erro ao carregar processos");
     } finally {
       setLoading(false);
     }
   }
 
-  // Loading State mais bonito
-  if (loading) return (
-    <div className="flex justify-center items-center h-64 text-gray-500 gap-2">
-      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-      Carregando processos...
-    </div>
-  );
-
   return (
-    <div className="space-y-6">
-      {/* Cabeçalho da Página */}
-      <div className="flex justify-between items-center">
+    <div className="w-full max-w-[1920px] mx-auto pb-20">
+      
+      <div className="flex justify-between items-end mb-8 pt-4">
         <div>
-          <h2 className="text-3xl font-bold text-gray-800">Meus Processos</h2>
-          <p className="text-sm text-gray-500 mt-1">Gerencie seus Documentos de Formalização de Demanda</p>
+          <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
+            <FolderOpen className="text-blue-600" /> Meus Processos
+          </h2>
+          <p className="text-gray-500 mt-1">Gerencie suas demandas e acompanhe o status.</p>
         </div>
+        
         <button 
-          onClick={() => navigate('/novo-dfd')} 
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2 shadow-sm font-medium"
+            onClick={() => navigate('/novo-dfd')} 
+            className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 shadow-md hover:shadow-lg transition-all flex items-center gap-2 font-bold"
         >
-          <Plus size={20} />
-          Novo DFD
+            <Plus size={20} /> Nova Demanda
         </button>
       </div>
 
-      {/* Tabela de Processos */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead className="bg-gray-50 border-b border-gray-100">
-            <tr>
-              <th className="p-4 font-semibold text-gray-600 w-32">Número</th>
-              <th className="p-4 font-semibold text-gray-600">Objeto</th>
-              <th className="p-4 font-semibold text-gray-600 text-right w-48">Ações</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {processos.map((dfd) => (
-              <tr key={dfd.id} className="hover:bg-gray-50 transition group">
-                <td className="p-4 font-medium text-blue-600 whitespace-nowrap">
-                  {dfd.numero}/{dfd.ano}
-                </td>
-                <td className="p-4 text-gray-700">
-                  {dfd.objeto ? (
-                    <span className="line-clamp-1" title={dfd.objeto}>{dfd.objeto}</span>
-                  ) : (
-                    <span className="italic text-gray-400">Objeto não definido</span>
-                  )}
-                </td>
-                <td className="p-4 text-right flex justify-end gap-2">
-                  
-                  {/* Botão EDITAR DFD */}
-                  <button 
-                    onClick={() => navigate(`/dfd/${dfd.id}`)}
-                    className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" 
-                    title="Editar DFD"
-                  >
-                    <Edit size={18} />
-                  </button>
-                  
-                  {/* Botão GERAR ETP (Novo!) */}
-                  <button 
-                    onClick={() => navigate(`/etp/${dfd.id}`)}
-                    className="p-2 text-gray-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition" 
-                    title="Gerar Estudo Técnico Preliminar (ETP)"
-                  >
-                    <FileCode size={18} />
-                  </button>
-                  
-                  {/* Botão EXCLUIR (Mock) */}
-                  <button 
-                    className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition" 
-                    title="Excluir Processo"
-                    onClick={() => {
-                        if(confirm("Tem certeza que deseja excluir?")) alert("Em breve!");
-                    }}
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </td>
-              </tr>
+      {loading ? (
+        <div className="p-10 text-center text-gray-400">Carregando...</div>
+      ) : processos.length === 0 ? (
+        <div className="text-center py-16 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
+            <p className="text-gray-500 text-lg">Nenhum processo encontrado.</p>
+            <button onClick={() => navigate('/novo-dfd')} className="mt-4 text-blue-600 font-bold hover:underline">
+                Criar o primeiro agora
+            </button>
+        </div>
+      ) : (
+        // Grid Responsivo
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+            {processos.map(dfd => (
+                <ProcessoCard key={dfd.id} dfd={dfd} />
             ))}
-            
-            {/* Estado Vazio */}
-            {processos.length === 0 && (
-                <tr>
-                    <td colSpan={3} className="p-12 text-center text-gray-500">
-                        <div className="flex flex-col items-center gap-3">
-                            <FileText size={48} className="text-gray-300" />
-                            <p>Nenhum processo encontrado.</p>
-                            <button 
-                                onClick={() => navigate('/novo-dfd')}
-                                className="text-blue-600 hover:underline text-sm"
-                            >
-                                Comece criando o seu primeiro DFD
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

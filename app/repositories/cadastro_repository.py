@@ -1,37 +1,39 @@
 from sqlalchemy.orm import Session
-from typing import Type, List, TypeVar
-from app.models.models import BaseModel
-
-# T é um "Placeholder" que diz: "Aqui entra qualquer classe que seja um Modelo do Banco"
-T = TypeVar("T", bound=BaseModel)
+from app.models import models
 
 class CadastroRepository:
     
+    # --- Unidades (Antigas Secretarias) ---
     @staticmethod
-    def get_all(db: Session, model: Type[T]) -> List[T]:
-        """Busca todos os registros ativos de uma tabela."""
-        return db.query(model).filter(model.is_active == True).all()
+    def get_all_unidades(db: Session):
+        # Retorna todas as unidades. 
+        # Dica: No futuro você pode filtrar só as que não têm 'unidade_pai_id' se quiser só secretarias
+        return db.query(models.UnidadeRequisitante).filter(models.UnidadeRequisitante.is_active == True).all()
 
+    # --- Agentes ---
     @staticmethod
-    def get_by_id(db: Session, model: Type[T], id: int) -> T:
-        """Busca um registro por ID."""
-        return db.query(model).filter(model.id == id, model.is_active == True).first()
+    def get_all_agentes(db: Session):
+        return db.query(models.AgenteResponsavel).filter(models.AgenteResponsavel.is_active == True).all()
 
+    # --- Itens do Catálogo (Nova Estrutura) ---
     @staticmethod
-    def create(db: Session, model: Type[T], schema_data: dict) -> T:
-        """Cria um novo registro genérico."""
-        db_obj = model(**schema_data)
-        db.add(db_obj)
-        db.commit()
-        db.refresh(db_obj)
-        return db_obj
+    def get_all_itens(db: Session):
+        itens = db.query(models.CatalogoItem).filter(models.CatalogoItem.is_active == True).all()
+        
+        resultado = []
+        for i in itens:
+            resultado.append({
+                "id": i.id,
+                "nome": i.nome_item, # Mapeia nome_item -> nome
+                "unidade_medida": i.unidade_medida,
+                "codigo": i.codigo_identificacao_completo,
+                "descricao": i.descricao_detalhada,
+                "tipo": i.tipo,
+                "is_active": i.is_active # <--- ADICIONADO (Faltava isso!)
+            })
+        return resultado
 
+    # --- Dotações ---
     @staticmethod
-    def delete(db: Session, model: Type[T], id: int) -> bool:
-        """Soft Delete (apenas desativa)."""
-        db_obj = db.query(model).filter(model.id == id).first()
-        if db_obj:
-            db_obj.is_active = False # Soft Delete
-            db.commit()
-            return True
-        return False
+    def get_all_dotacoes(db: Session):
+        return db.query(models.Dotacao).filter(models.Dotacao.is_active == True).all()
