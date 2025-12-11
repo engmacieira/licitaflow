@@ -1,22 +1,28 @@
 import { useState } from 'react';
 import { Wallet, Plus, Trash2 } from 'lucide-react';
-import type { GenericOption, DFDDotacao } from '../../services/api'; // Importe DFDDotacao
+import type { GenericOption, DFDDotacao } from '../../services/api';
+import { useToast } from '../../contexts/ToastContext';
 
 interface DfdDotacaoListProps {
-  dotacoesSelecionadas: DFDDotacao[]; // Tipagem forte agora
+  dotacoesSelecionadas: DFDDotacao[];
   listaDisponivel: GenericOption[];
   onAdd: (dotacao: any) => void;
   onRemove: (index: number) => void;
 }
 
 export function DfdDotacaoList({ dotacoesSelecionadas, listaDisponivel, onAdd, onRemove }: DfdDotacaoListProps) {
+  const { addToast } = useToast();
   const [selectedId, setSelectedId] = useState<number>(0);
 
   const handleAdd = () => {
-    if (!selectedId) return alert("Selecione uma dotação!");
-    
+    if (!selectedId) {
+        addToast("Selecione uma dotação orçamentária.", "warning");
+        return;
+    }
+
     if (dotacoesSelecionadas?.some(d => d.dotacao_id === selectedId)) {
-        return alert("Dotação já vinculada!");
+        addToast("Esta dotação já está vinculada ao documento.", "warning");
+        return;
     }
 
     const dotReal = listaDisponivel.find(d => d.id === selectedId);
@@ -24,66 +30,81 @@ export function DfdDotacaoList({ dotacoesSelecionadas, listaDisponivel, onAdd, o
 
     onAdd({
         dotacao_id: selectedId,
-        // Salvamos auxiliares para exibição imediata antes de salvar/recarregar
         _numero: dotReal.numero,
         _nome: dotReal.nome,
-        // Opcional: já injetar o objeto completo para consistência
-        dotacao: dotReal 
+        dotacao: dotReal
     });
+    
     setSelectedId(0);
+    addToast("Dotação vinculada!", "success");
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-green-100">
-      <div className="flex items-center gap-2 mb-4">
-        <Wallet className="text-green-600" />
-        <h3 className="text-lg font-bold text-gray-800">Dotação Orçamentária</h3>
-      </div>
+    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 h-full flex flex-col">
+      
+      {/* Cabeçalho */}
+      <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4 flex items-center gap-2">
+        <Wallet size={16} className="text-green-600"/> Fonte de Recursos / Dotação
+      </h3>
 
-      <div className="flex gap-3 mb-4 p-4 bg-green-50 rounded-lg items-end">
-        <div className="flex-1">
-          <label className="text-xs font-bold text-green-800 uppercase">Ficha Orçamentária</label>
-          <select 
-            className="w-full p-2 border border-green-200 rounded mt-1 bg-white"
+      {/* Área de Seleção */}
+      <div className="flex gap-2 mb-6">
+        <select
+            // CORREÇÃO: Adicionado 'min-w-0' para evitar que opções longas estourem o layout
+            className="flex-1 min-w-0 p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-green-500 outline-none transition appearance-none truncate"
             value={selectedId}
             onChange={e => setSelectedId(Number(e.target.value))}
-          >
-            <option value={0}>Selecione a dotação...</option>
-            {listaDisponivel.map(d => (
-              <option key={d.id} value={d.id}>{d.numero} - {d.nome}</option>
+        >
+            <option value={0}>Selecione a fonte...</option>
+            {listaDisponivel.map(opt => (
+                <option key={opt.id} value={opt.id} className="truncate">
+                    {opt.numero ? `${opt.numero} - ` : ''}{opt.nome}
+                </option>
             ))}
-          </select>
-        </div>
-        <button onClick={handleAdd} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 flex items-center gap-1 transition shadow-sm active:scale-95">
-          <Plus size={18} /> Vincular
+        </select>
+        <button
+            onClick={handleAdd}
+            className="bg-green-600 hover:bg-green-700 text-white p-2.5 rounded-lg transition-all shadow-sm active:scale-95 flex items-center justify-center w-12 shrink-0"
+            title="Adicionar"
+        >
+            <Plus size={20} />
         </button>
       </div>
 
-      <ul className="space-y-2">
-        {dotacoesSelecionadas && dotacoesSelecionadas.length > 0 ? (
+      {/* Lista de Itens */}
+      <div className="flex-1 overflow-y-auto min-h-[150px] space-y-2 pr-1 custom-scrollbar">
+        {!dotacoesSelecionadas || dotacoesSelecionadas.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-center text-gray-400 border-2 border-dashed border-gray-100 rounded-xl p-4">
+                <Wallet size={32} className="mb-2 opacity-20" />
+                <span className="text-xs">Nenhuma dotação vinculada.</span>
+            </div>
+        ) : (
             dotacoesSelecionadas.map((dot, idx) => {
-                // LÓGICA DE EXIBIÇÃO ROBUSTA:
-                // 1. Tenta pegar do objeto do banco (dot.dotacao)
-                // 2. Se não tiver, tenta pegar do temporário local (dot._numero)
-                // 3. Fallback para ID
-                const numero = dot.dotacao?.numero || dot._numero;
-                const nome = dot.dotacao?.nome || dot._nome;
-                
-                const label = numero ? `${numero} - ${nome}` : `Dotação ID ${dot.dotacao_id}`;
-                
+                const dAny = dot as any; 
+                const numero = dAny.dotacao?.numero || dAny._numero;
+                const nome = dAny.dotacao?.nome || dAny._nome;
+                const label = numero ? `${numero} - ${nome}` : `Dotação ID: ${dot.dotacao_id}`;
+
                 return (
-                    <li key={idx} className="flex justify-between items-center p-3 border border-green-100 rounded bg-white hover:shadow-sm transition">
-                        <span className="font-mono text-gray-700 text-sm">{label}</span>
-                        <button onClick={() => onRemove(idx)} className="text-red-500 hover:bg-red-50 p-1 rounded transition">
+                    <div key={idx} className="flex justify-between items-center p-3 bg-green-50/30 border border-green-100 rounded-xl group hover:border-green-300 transition-all">
+                        <div className="flex items-center gap-3 overflow-hidden">
+                            <div className="min-w-[4px] h-8 bg-green-400 rounded-full" />
+                            <span className="text-xs font-medium text-gray-700 truncate" title={label}>
+                                {label}
+                            </span>
+                        </div>
+                        <button
+                            onClick={() => onRemove(idx)}
+                            className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors shrink-0"
+                            title="Remover item"
+                        >
                             <Trash2 size={16} />
                         </button>
-                    </li>
+                    </div>
                 );
             })
-        ) : (
-            <p className="text-center text-gray-400 py-4 italic text-sm">Nenhuma dotação vinculada.</p>
         )}
-      </ul>
+      </div>
     </div>
   );
 }

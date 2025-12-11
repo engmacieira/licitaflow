@@ -1,10 +1,13 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import './index.css'
 import App from './App.tsx'
+import './index.css'
+import { ToastProvider } from './contexts/ToastContext'; // Importação do Pixel
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ToastProvider> {/* Envolvendo a App com o Provider */}
+      <App />
+    </ToastProvider>
   </StrictMode>,
 )

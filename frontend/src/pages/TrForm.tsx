@@ -1,22 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { TrService, EtpService, type TR, type DFD, type ETP } from '../services/api';
-import { Save, ArrowLeft, Loader2, ScrollText } from 'lucide-react';
+import { TrService, type TR } from '../services/api';
+import { Save, ArrowLeft, Loader2, ScrollText, AlertTriangle } from 'lucide-react';
 
-// COMPONENTES MODULARES
+// COMPONENTES MODULARES & PIXEL UI
 import { TrTabDefinition } from '../components/tr/TrTabDefinition';
 import { TrTabExecution } from '../components/tr/TrTabExecution';
 import { TrTabPayment } from '../components/tr/TrTabPayment';
 import { TrTabObligations } from '../components/tr/TrTabObligations';
+import { StickyFooter } from '../components/ui/StickyFooter'; // ✨ Barra Fixa
+import { useToast } from '../contexts/ToastContext';       // ✨ Notificações
 
 export function TrForm() {
   const { etpId } = useParams();
   const navigate = useNavigate();
+  const { addToast } = useToast();
   
   // Estados
   const [tr, setTr] = useState<TR | null>(null);
-  const [dfd, setDfd] = useState<DFD | null>(null);
-  const [etp, setEtp] = useState<ETP | null>(null);
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -30,21 +31,20 @@ export function TrForm() {
 
   async function loadData(id: number) {
     try {
+      // Tenta buscar o TR. Se não existir, o backend deve criar ou retornar 404.
+      // Assumindo que seu Service já trata a criação se necessário, ou retorna null.
       const trData = await TrService.buscarPorEtp(id);
+      
       if (!trData) {
-        alert("Erro: Matriz de Riscos não encontrada. Finalize o ETP antes de gerar o TR.");
-        navigate(`/etp/${id}`);
+        addToast("Matriz de Riscos ou ETP incompleto. Finalize o planejamento antes.", "error");
+        navigate(`/planejamento`); // Redireciona para segurança
         return;
       }
       setTr(trData);
-      
-      // Busca dados auxiliares para contexto (Opcional por enquanto)
-      const etpData = await EtpService.buscarPorDfd(id); // Ajuste conforme sua rota real
-      // ... setEtp(etpData) ...
 
     } catch (error) {
       console.error(error);
-      alert("Erro ao carregar documento.");
+      addToast("Erro ao carregar o Termo de Referência.", "error");
     } finally {
       setLoading(false);
     }
@@ -63,9 +63,12 @@ export function TrForm() {
     setSaving(true);
     try {
       await TrService.atualizar(tr.id, tr);
-      alert("✅ Termo de Referência salvo!");
-    } catch { alert("Erro ao salvar."); } 
-    finally { setSaving(false); }
+      addToast("Minuta do Termo de Referência salva com sucesso!", "success");
+    } catch { 
+      addToast("Não foi possível salvar a minuta.", "error"); 
+    } finally { 
+      setSaving(false); 
+    }
   };
 
   const runAI = async (field: keyof TR, sectionType: string) => {
@@ -74,14 +77,15 @@ export function TrForm() {
     try {
       const text = await TrService.gerarClausula(parseInt(etpId), sectionType);
       handleTrChange(field, text);
+      addToast("Cláusula gerada pela IA Jurídica.", "success");
     } catch (e) {
-      alert("Erro na IA jurídica.");
+      addToast("Erro ao gerar conteúdo com a IA.", "error");
     } finally {
       setAiLoading(null);
     }
   };
 
-  if (loading || !tr) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" size={40} /></div>;
+  if (loading || !tr) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-slate-600" size={40} /></div>;
 
   // Props comuns para todas as abas
   const tabProps = {
@@ -94,13 +98,13 @@ export function TrForm() {
   };
 
   return (
-    <div className="w-full max-w-[1920px] mx-auto pb-24 px-6 transition-all duration-500">
+    <div className="w-full max-w-[1920px] mx-auto pb-32 px-6 transition-all duration-500">
       
       {/* HEADER */}
       <div className="flex justify-between items-center mb-8 pt-6">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate(-1)} className="p-2.5 bg-white hover:bg-gray-100 rounded-full transition shadow-sm border border-gray-200">
-            <ArrowLeft className="text-gray-500" size={20} />
+          <button onClick={() => navigate(-1)} className="p-2.5 bg-white hover:bg-gray-100 rounded-full transition shadow-sm border border-gray-200 group">
+            <ArrowLeft className="text-gray-500 group-hover:text-slate-800" size={20} />
           </button>
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -113,9 +117,6 @@ export function TrForm() {
             </h2>
           </div>
         </div>
-        <button onClick={handleSave} disabled={saving} className="bg-slate-800 text-white px-6 py-3 rounded-xl hover:bg-slate-900 shadow-md flex items-center gap-2 font-bold disabled:opacity-70">
-          {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />} Salvar Minuta
-        </button>
       </div>
 
       {/* TABS */}
@@ -147,6 +148,41 @@ export function TrForm() {
         {activeTab === 'pagamento' && <TrTabPayment {...tabProps} />}
         {activeTab === 'obrigacoes' && <TrTabObligations {...tabProps} />}
       </div>
+
+      {/* --- STICKY FOOTER --- */}
+      <StickyFooter>
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+           {saving ? (
+             <>
+                <Loader2 className="animate-spin text-slate-600" size={16} />
+                <span>Salvando minuta...</span>
+             </>
+           ) : (
+             <>
+                <AlertTriangle size={16} className="text-amber-500" />
+                <span>Documento Jurídico. Revise antes de salvar.</span>
+             </>
+           )}
+        </div>
+        
+        <div className="flex gap-3">
+            <button 
+                onClick={() => navigate(-1)} 
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium transition-colors"
+            >
+                Voltar
+            </button>
+            <button 
+                onClick={handleSave} 
+                disabled={saving} 
+                className="bg-slate-800 text-white px-6 py-2.5 rounded-lg hover:bg-slate-900 shadow-lg shadow-slate-300 font-bold flex items-center gap-2 transition-all active:scale-95 disabled:opacity-70 disabled:active:scale-100"
+            >
+                {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} 
+                {saving ? 'Salvando...' : 'Salvar Minuta'}
+            </button>
+        </div>
+      </StickyFooter>
+
     </div>
   );
 }

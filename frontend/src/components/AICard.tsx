@@ -1,68 +1,107 @@
-import { Wand2, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { Wand2, Loader2, Copy, Check } from 'lucide-react';
 
-interface AICardProps {
+export interface AICardProps {
   title: string;
-  // ADICIONADO 'purple' NA LISTA DE CORES ACEITAS
-  color: 'red' | 'blue' | 'green' | 'yellow' | 'gray' | 'purple'; 
+  // Adicionando 'orange' e 'gray' que estavam faltando
+  color: 'blue' | 'red' | 'green' | 'yellow' | 'gray' | 'purple' | 'orange';
   value: string;
   onChange: (value: string) => void;
-  draft: string;
-  onDraftChange: (value: string) => void;
+  draft?: string;
+  onDraftChange?: (value: string) => void;
   loading: boolean;
   onGenerate: () => void;
-  placeholder: string;
+  placeholder?: string;
+  // Nova prop para esconder o botão de IA se necessário
+  disableAI?: boolean;
 }
 
-export function AICard({ title, color, value, onChange, draft, onDraftChange, loading, onGenerate, placeholder }: AICardProps) {
+export function AICard({ 
+  title, 
+  color, 
+  value, 
+  onChange, 
+  draft, 
+  onDraftChange, 
+  loading, 
+  onGenerate, 
+  placeholder,
+  disableAI = false 
+}: AICardProps) {
   
-  // Mapa de Cores (Adicionado o estilo para purple)
-  const styles = {
-    red:    { header: 'bg-red-600',    border: 'focus:ring-red-500',    input: 'bg-red-50 text-red-900 border-red-100' },
-    blue:   { header: 'bg-blue-600',   border: 'focus:ring-blue-500',   input: 'bg-blue-50 text-blue-900 border-blue-100' },
-    green:  { header: 'bg-green-600',  border: 'focus:ring-green-500',  input: 'bg-green-50 text-green-900 border-green-100' },
-    yellow: { header: 'bg-yellow-600', border: 'focus:ring-yellow-500', input: 'bg-yellow-50 text-yellow-900 border-yellow-100' },
-    gray:   { header: 'bg-gray-700',   border: 'focus:ring-gray-500',   input: 'bg-gray-50 text-gray-900 border-gray-200' },
-    // Novo estilo Roxo
-    purple: { header: 'bg-purple-600', border: 'focus:ring-purple-500', input: 'bg-purple-50 text-purple-900 border-purple-100' },
+  const [copied, setCopied] = useState(false);
+
+  const colorMap = {
+    blue:   { border: 'border-blue-200',   bg: 'bg-blue-50',   text: 'text-blue-700',   ring: 'focus:ring-blue-500' },
+    green:  { border: 'border-green-200',  bg: 'bg-green-50',  text: 'text-green-700',  ring: 'focus:ring-green-500' },
+    purple: { border: 'border-purple-200', bg: 'bg-purple-50', text: 'text-purple-700', ring: 'focus:ring-purple-500' },
+    yellow: { border: 'border-yellow-200', bg: 'bg-yellow-50', text: 'text-yellow-700', ring: 'focus:ring-yellow-500' },
+    red:    { border: 'border-red-200',    bg: 'bg-red-50',    text: 'text-red-700',    ring: 'focus:ring-red-500' },
+    gray:   { border: 'border-gray-200',   bg: 'bg-gray-50',   text: 'text-gray-700',   ring: 'focus:ring-gray-500' },
+    orange: { border: 'border-orange-200', bg: 'bg-orange-50', text: 'text-orange-700', ring: 'focus:ring-orange-500' },
   };
 
-  const currentStyle = styles[color];
+  const styles = colorMap[color] || colorMap.blue;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-300">
-      <div className={`${currentStyle.header} text-white px-6 py-3 flex justify-between items-center`}>
-        <h3 className="font-bold text-sm uppercase tracking-wide">{title}</h3>
-        <span className="text-[10px] bg-white/20 px-2 py-1 rounded flex items-center gap-1 font-mono">
-          <Wand2 size={12}/> IA POWERED
-        </span>
+    <div className={`bg-white rounded-2xl border ${styles.border} shadow-sm overflow-hidden transition-all hover:shadow-md`}>
+      <div className={`${styles.bg} px-4 py-3 border-b ${styles.border} flex justify-between items-center`}>
+        <h3 className={`font-bold text-sm uppercase tracking-wide ${styles.text}`}>
+          {title}
+        </h3>
+        
+        {!disableAI && (
+          <button 
+            onClick={onGenerate}
+            disabled={loading}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-white border border-white/50 shadow-sm transition-all active:scale-95 disabled:opacity-50 ${styles.text} hover:bg-white/80`}
+          >
+            {loading ? <Loader2 className="animate-spin" size={14}/> : <Wand2 size={14}/>}
+            {loading ? 'Gerando...' : 'Gerar com IA'}
+          </button>
+        )}
       </div>
 
-      <div className="p-6">
-        <div className={`flex gap-2 p-1 pl-3 rounded-lg mb-4 border ${currentStyle.input} items-center`}>
-          <input 
-            className="flex-1 bg-transparent border-none outline-none text-sm placeholder-current placeholder-opacity-60"
-            placeholder={placeholder}
-            value={draft}
-            onChange={(e) => onDraftChange(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && onGenerate()} 
+      <div className="p-4 space-y-4">
+        <div className="relative">
+          <textarea
+            className={`w-full p-4 text-sm text-gray-700 bg-white border ${styles.border} rounded-xl focus:ring-2 ${styles.ring} focus:border-transparent outline-none transition-all resize-y min-h-[120px] leading-relaxed`}
+            placeholder={placeholder || "Digite ou gere o conteúdo..."}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
           />
-          <button 
-            onClick={onGenerate} 
-            disabled={loading}
-            className="bg-white/80 hover:bg-white text-xs px-4 py-2 rounded-md shadow-sm transition-all disabled:opacity-50 flex items-center gap-2 font-bold text-gray-700 active:scale-95"
-          >
-            {loading ? <Loader2 size={14} className="animate-spin"/> : <Wand2 size={14}/>} 
-            Gerar Texto
-          </button>
+          {value && (
+            <button 
+              onClick={handleCopy}
+              className="absolute bottom-3 right-3 p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+              title="Copiar texto"
+            >
+              {copied ? <Check size={16} className="text-green-500"/> : <Copy size={16}/>}
+            </button>
+          )}
         </div>
 
-        <textarea 
-          className={`w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all text-gray-700 leading-relaxed ${currentStyle.border}`}
-          rows={6}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="O texto gerado pela Inteligência Artificial aparecerá aqui para sua revisão..."
-        />
+        {!disableAI && draft !== undefined && onDraftChange && (
+           <div className="relative">
+             <input 
+                type="text"
+                className="w-full pl-3 pr-10 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 text-gray-600 placeholder:text-gray-300"
+                placeholder="Dê uma instrução específica para a IA (opcional)..."
+                value={draft}
+                onChange={(e) => onDraftChange(e.target.value)}
+                onKeyDown={(e) => { if(e.key === 'Enter') onGenerate(); }}
+             />
+             <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300">
+               <Wand2 size={12} />
+             </div>
+           </div>
+        )}
       </div>
     </div>
   );

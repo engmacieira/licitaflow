@@ -1,67 +1,87 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DfdService, type DFD } from '../services/api';
-import { FolderOpen, Plus } from 'lucide-react';
+import { api } from '../services/api';
 import { ProcessoCard } from '../components/processos/ProcessoCard';
+import { EmptyState } from '../components/ui/EmptyState';
+import { FolderOpen, Plus, Loader2 } from 'lucide-react'; // RefreshCw removido
+import { useToast } from '../contexts/ToastContext';
 
-export function MeusProcessos() {
-  const navigate = useNavigate();
-  const [processos, setProcessos] = useState<DFD[]>([]);
+interface Dfd {
+  id: number;
+  tipo_solicitacao: string;
+  objeto: string;
+  unidade_requisitante: string;
+  status: string;
+  created_at: string;
+}
+
+export default function MeusProcessos() {
+  const [dfds, setDfds] = useState<Dfd[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const { addToast } = useToast();
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  async function loadData() {
+  async function loadDfds() {
+    setLoading(true);
     try {
-      const data = await DfdService.listar();
-      setProcessos(data);
+      const response = await api.get('/dfds/'); 
+      setDfds(response.data);
     } catch (error) {
-      alert("Erro ao carregar processos");
+      addToast('Não foi possível carregar seus processos.', 'error');
+      console.error(error);
     } finally {
       setLoading(false);
     }
   }
 
+  useEffect(() => {
+    loadDfds();
+  }, []);
+
   return (
-    <div className="w-full max-w-[1920px] mx-auto pb-20">
+    <div className="space-y-8 animate-in fade-in duration-500">
       
-      <div className="flex justify-between items-end mb-8 pt-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-            <FolderOpen className="text-blue-600" /> Meus Processos
-          </h2>
-          <p className="text-gray-500 mt-1">Gerencie suas demandas e acompanhe o status.</p>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Meus Processos</h1>
+          <p className="text-gray-500 mt-1">
+            Gerencie e acompanhe seus Documentos de Formalização de Demanda.
+          </p>
         </div>
-        
+
         <button 
-            onClick={() => navigate('/novo-dfd')} 
-            className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 shadow-md hover:shadow-lg transition-all flex items-center gap-2 font-bold"
+          onClick={() => navigate('/novo-dfd')}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-medium flex items-center gap-2 transition-all shadow-lg shadow-blue-200 active:scale-95"
         >
-            <Plus size={20} /> Nova Demanda
+          <Plus size={20} />
+          Novo DFD
         </button>
       </div>
 
       {loading ? (
-        <div className="p-10 text-center text-gray-400">Carregando...</div>
-      ) : processos.length === 0 ? (
-        <div className="text-center py-16 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
-            <p className="text-gray-500 text-lg">Nenhum processo encontrado.</p>
-            <button onClick={() => navigate('/novo-dfd')} className="mt-4 text-blue-600 font-bold hover:underline">
-                Criar o primeiro agora
-            </button>
+        <div className="flex flex-col items-center justify-center py-32 space-y-4">
+          <Loader2 className="animate-spin text-blue-600" size={48} />
+          <p className="text-gray-400 font-medium animate-pulse">Buscando processos...</p>
         </div>
+      ) : dfds.length === 0 ? (
+        <EmptyState 
+          title="Sua mesa está limpa!"
+          description="Você ainda não possui nenhum Documento de Formalização de Demanda (DFD) cadastrado. Que tal iniciar um novo planejamento?"
+          icon={FolderOpen}
+          action={
+            <button 
+              onClick={() => navigate('/novo-dfd')}
+              className="mt-2 text-blue-600 font-bold hover:text-blue-800 hover:bg-blue-50 px-4 py-2 rounded-lg transition-colors"
+            >
+              Começar Novo Processo &rarr;
+            </button>
+          }
+        />
       ) : (
-        // Grid Responsivo
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-            {processos.map(dfd => (
-                <ProcessoCard 
-                    key={dfd.id} 
-                    dfd={dfd} 
-                    onDelete={loadData} // <--- Passando a função de recarregar
-                />
-            ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {dfds.map((dfd) => (
+            <ProcessoCard key={dfd.id} data={dfd} />
+          ))}
         </div>
       )}
     </div>
