@@ -66,6 +66,15 @@ export interface ItemETP {
     valor_total_estimado: number;
 }
 
+export interface DfdSummary {
+    id: number;
+    numero: number;
+    ano: number;
+    objeto: string;
+    justificativa: string;
+    unidade_requisitante_id: number;
+}
+
 export interface ETP {
     id?: number;
     dfd_id?: number; // Opcional agora
@@ -86,6 +95,7 @@ export interface ETP {
     impactos_ambientais?: string;
     viabilidade?: boolean;
     conclusao_viabilidade?: string;
+    dfds?: DfdSummary[];
 }
 
 export interface GenericOption {
@@ -95,6 +105,41 @@ export interface GenericOption {
     numero?: string;
     exercicio?: number;
     cargo?: string;
+}
+
+export interface ItemRisco {
+    id?: number;
+    matriz_id?: number;
+    descricao_risco: string;
+    probabilidade: 'Baixa' | 'Média' | 'Alta';
+    impacto: 'Baixo' | 'Médio' | 'Alto';
+    medida_preventiva: string;
+    responsavel: string;
+}
+
+export interface MatrizRisco {
+    id: number;
+    etp_id: number;
+    riscos: ItemRisco[];
+}
+
+export interface TR {
+    id?: number;
+    matriz_id?: number;
+    
+    fundamentacao?: string;
+    descricao_solucao?: string;
+    sustentabilidade?: string;
+    estrategia_execucao?: string;
+    gestao_contrato?: string;
+    criterio_recebimento?: string;
+    criterio_liquidacao?: string;
+    criterio_pagamento?: string;
+    forma_selecao?: string;
+    habilitacao?: string;
+    obrigacoes_contratante?: string;
+    obrigacoes_contratada?: string;
+    apresentacao_amostras?: string;
 }
 
 // --- Instância Axios ---
@@ -132,7 +177,8 @@ export const DfdService = {
     },
     atualizar: async (id: number, dados: Partial<DFD>) => (await api.put<DFD>(`/dfds/${id}`, dados)).data,
     atualizarPrecos: async (itens: { id: number; valor_unitario_estimado: number }[]) => 
-        (await api.put('/dfds/itens/precos', itens)).data
+        (await api.put('/dfds/itens/precos', itens)).data,
+    excluir: async (id: number) => (await api.delete(`/dfds/${id}`)).data
 };
 
 export const EtpService = {
@@ -148,6 +194,40 @@ export const EtpService = {
     atualizar: async (id: number, dados: Partial<ETP>) => (await api.put<ETP>(`/etps/${id}`, dados)).data,
     atualizarPrecos: async (itens: { id: number; valor_unitario_referencia: number }[]) => 
         (await api.put('/etps/itens/precos', itens)).data,
+    excluir: async (id: number) => (await api.delete(`/etps/${id}`)).data,
+    desvincularDfd: async (etpId: number, dfdId: number) => 
+        (await api.delete(`/etps/${etpId}/unlink/${dfdId}`)).data
+};
+
+export const RiskService = {
+    buscarPorEtp: async (etpId: number) => {
+        try {
+            return (await api.get<MatrizRisco>(`/riscos/etp/${etpId}`)).data;
+        } catch (e) {
+            return null;
+        }
+    },
+    adicionar: async (matrizId: number, risco: ItemRisco) => {
+        return (await api.post<ItemRisco>(`/riscos/item/${matrizId}`, risco)).data;
+    },
+    remover: async (riscoId: number) => {
+        return (await api.delete(`/riscos/item/${riscoId}`)).data;
+    },
+    gerarComIA: async (objetoEtp: string) => {
+        return (await api.post<ItemRisco[]>('/riscos/generate', { etp_object: objetoEtp })).data;
+    }
+};
+
+export const TrService = {
+    buscarPorEtp: async (etpId: number) => {
+        try { return (await api.get<TR>(`/trs/etp/${etpId}`)).data; } 
+        catch (e) { return null; }
+    },
+    atualizar: async (id: number, dados: Partial<TR>) => (await api.put<TR>(`/trs/${id}`, dados)).data,
+    
+    // Serviço específico para gerar cláusula com IA
+    gerarClausula: async (etpId: number, section: string) => 
+        (await api.post('/trs/generate/clause', { etp_id: etpId, section })).data.result,
 };
 
 export const AIService = {
@@ -179,6 +259,12 @@ export const AIService = {
         (await api.post('/ai/generate/etp-environmental-impacts', { dfd_object: obj, draft_text: draft, user_instructions: instr })).data.result,
     gerarViabilidade: async (obj: string, draft: string, instr: string) => 
         (await api.post('/ai/generate/etp-viability', { dfd_object: obj, draft_text: draft, user_instructions: instr })).data.result,
+    gerarObjetoConsolidado: async (listaObjetos: string[]) => 
+        (await api.post('/ai/generate/consolidated-object', { text_list: listaObjetos })).data.result,
+    gerarJustificativaConsolidada: async (listaJustificativas: string[]) => 
+        (await api.post('/ai/generate/consolidated-justification', { text_list: listaJustificativas })).data.result,
+    gerarConsolidado: async (lista: string[], tipo: 'objeto' | 'justificativa') => 
+        (await api.post('/ai/generate/consolidated', { text_list: lista, type: tipo })).data.result,
 };
 
 export const DashboardService = {

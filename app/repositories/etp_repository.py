@@ -126,3 +126,30 @@ class ETPRepository:
         except Exception as e:
             db.rollback()
             raise e
+        
+    @staticmethod
+    def unlink_dfd(db: Session, etp_id: int, dfd_id: int):
+        """Remove o vínculo de um DFD com o ETP, devolvendo-o para o status de Rascunho."""
+        dfd = db.query(DFD).filter(DFD.id == dfd_id, DFD.etp_id == etp_id).first()
+        if not dfd:
+            raise Exception("DFD não encontrado neste ETP.")
+            
+        dfd.etp_id = None
+        dfd.status = "Rascunho"
+        db.commit()
+        return True
+
+    @staticmethod
+    def delete(db: Session, etp_id: int):
+        """Soft Delete do ETP. Libera todos os DFDs vinculados."""
+        etp = db.query(ETP).filter(ETP.id == etp_id).first()
+        if not etp: return False
+        
+        # Libera os DFDs presos a este ETP
+        for dfd in etp.dfds:
+            dfd.etp_id = None
+            dfd.status = "Rascunho"
+            
+        etp.is_active = False
+        db.commit()
+        return True

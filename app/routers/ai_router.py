@@ -3,8 +3,9 @@ from app.schemas.ai_schema import (GenerateObjectRequest, GenerateObjectResponse
                                    GenerateETPNeedRequest, GenerateETPRequirementsRequest, GenerateETPMotivationRequest,
                                    GenerateETPMarketAnalysisRequest, GenerateETPChoiceJustificationRequest, GenerateETPSolutionDescriptionRequest,
                                    GenerateETPParcelingJustificationRequest, GenerateETPResultsRequest, GenerateETPPriorMeasuresRequest,
-                                   GenerateETPEnvironmentalImpactsRequest, GenerateETPViabilityRequest)
+                                   GenerateETPEnvironmentalImpactsRequest, GenerateETPViabilityRequest, GenerateConsolidatedRequest)
 from app.services.ai_service import AIService
+from pydantic import BaseModel
 
 router = APIRouter(
     prefix="/ai",
@@ -184,6 +185,34 @@ def generate_etp_viability(request: GenerateETPViabilityRequest):
             draft_text=request.draft_text,
             user_instructions=request.user_instructions
         )
+        return GenerateObjectResponse(result=result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/generate/consolidated-object", response_model=GenerateObjectResponse)
+def generate_consolidated_object(request: GenerateConsolidatedRequest):
+    try:
+        result = ai_service.generate_consolidated_object(request.text_list)
+        return GenerateObjectResponse(result=result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/generate/consolidated-justification", response_model=GenerateObjectResponse)
+def generate_consolidated_justification(request: GenerateConsolidatedRequest):
+    try:
+        result = ai_service.generate_consolidated_justification(request.text_list)
+        return GenerateObjectResponse(result=result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+class ConsolidatedRequest(BaseModel):
+    text_list: list[str]
+    type: str # 'objeto' ou 'justificativa'
+
+@router.post("/generate/consolidated", response_model=GenerateObjectResponse)
+def generate_consolidated(request: ConsolidatedRequest):
+    try:
+        result = ai_service.generate_consolidated_text(request.text_list, request.type)
         return GenerateObjectResponse(result=result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

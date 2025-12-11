@@ -55,3 +55,16 @@ def atualizar_precos_itens_etp(itens: List[ItemETPUpdatePrice], db: Session = De
         return {"message": "Preços atualizados com sucesso"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@router.delete("/{etp_id}")
+def deletar_etp(etp_id: int, db: Session = Depends(get_db)):
+    ETPRepository.delete(db, etp_id)
+    return {"message": "ETP excluído e DFDs liberados."}
+
+@router.delete("/{etp_id}/unlink/{dfd_id}")
+def desvincular_dfd(etp_id: int, dfd_id: int, db: Session = Depends(get_db)):
+    try:
+        ETPRepository.unlink_dfd(db, etp_id, dfd_id)
+        return {"message": "DFD desvinculado com sucesso."}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

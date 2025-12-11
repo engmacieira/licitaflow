@@ -392,6 +392,135 @@ class AIService:
         
         return self._generate_safe_content(prompt)
     
+    def generate_consolidated_object(self, objects_list: list[str]) -> str:
+        """
+        Recebe uma lista de objetos de vários DFDs e cria um texto unificado para o ETP.
+        """
+        lista_formatada = "\n".join([f"- {obj}" for obj in objects_list])
+        
+        prompt = f"""
+        Role: Especialista em Licitações Públicas.
+        Tarefa: Unificar múltiplos objetos de DFDs (Documentos de Formalização da Demanda) em um único Objeto de ETP (Estudo Técnico Preliminar).
+        
+        Regras:
+        1. O texto deve ser formal, técnico e abrangente.
+        2. Use termos como "Registro de Preços", "Aquisição de", "Contratação de".
+        3. Não cite nomes de secretarias específicas no objeto, use termos genéricos como "Secretarias Municipais" ou "Demandantes".
+        4. O objetivo é criar um "Guarda-Chuva" que cubra todos os itens.
+
+        Lista de Objetos Originais:
+        {lista_formatada}
+
+        Saída (Apenas o texto do Objeto Unificado):
+        """
+        return self._generate_safe_content(prompt)
+
+    def generate_consolidated_justification(self, justifications_list: list[str]) -> str:
+        """
+        Sintetiza as justificativas dos DFDs em uma justificativa global de ganho de escala.
+        """
+        lista_formatada = "\n".join([f"- {jus}" for jus in justifications_list])
+        
+        prompt = f"""
+        Role: Especialista em Compras Públicas.
+        Tarefa: Criar uma Justificativa da Necessidade para um ETP Consolidado, baseada nas justificativas individuais.
+        
+        Diretrizes:
+        1. Foque no "Ganho de Escala" e na "Padronização".
+        2. Explique que a consolidação visa a economia processual e melhores preços.
+        3. Mencione que os itens são essenciais para o funcionamento contínuo das unidades.
+
+        Justificativas Originais:
+        {lista_formatada}
+
+        Saída (Texto corrido, 1 ou 2 parágrafos):
+        """
+        return self._generate_safe_content(prompt)
+    
+    def generate_consolidated_text(self, text_list: list[str], type: str) -> str:
+        """
+        Gera texto unificado. type pode ser 'objeto' ou 'justificativa'.
+        """
+        lista_formatada = "\n".join([f"- {t}" for t in text_list])
+        
+        if type == 'objeto':
+            prompt = f"""
+            Role: Especialista em Licitações.
+            Tarefa: Unificar múltiplos objetos de DFDs em um único Objeto de ETP.
+            Regras: Crie um texto formal, técnico e abrangente (ex: "Registro de Preços para aquisição de...").
+            Itens Originais:
+            {lista_formatada}
+            Saída (Apenas o texto final):
+            """
+        else:
+            prompt = f"""
+            Role: Especialista em Compras Públicas.
+            Tarefa: Criar uma Justificativa de Consolidação baseada nas demandas individuais.
+            Foco: Ganho de escala, padronização e economia processual.
+            Justificativas Originais:
+            {lista_formatada}
+            Saída (Texto corrido, 1 parágrafo):
+            """
+            
+        return self._generate_safe_content(prompt)
+    
+    def generate_risks(self, etp_object: str) -> str:
+        """
+        Gera uma lista de riscos prováveis em formato JSON para o frontend.
+        """
+        prompt = f"""
+        Role: Especialista em Gestão de Riscos em Contratações Públicas (Lei 14.133/21).
+        Tarefa: Identificar 3 a 5 riscos principais para o objeto abaixo e sugerir medidas preventivas.
+        
+        Objeto da Contratação: "{etp_object}"
+        
+        Formato de Saída (JSON Array estrito, sem markdown):
+        [
+            {{
+                "descricao_risco": "Descrição curta do risco",
+                "probabilidade": "Baixa" | "Média" | "Alta",
+                "impacto": "Baixo" | "Médio" | "Alto",
+                "medida_preventiva": "Ação para mitigar",
+                "responsavel": "Fiscal do Contrato" | "Gestor" | "Contratada"
+            }}
+        ]
+        """
+        # Nota: O 'generation_config={"response_mime_type": "application/json"}' 
+        # seria ideal aqui se estivéssemos usando a SDK mais nova, 
+        # mas vamos pedir texto puro e tratar no front ou backend.
+        
+        return self._generate_safe_content(prompt)
+
+    def generate_tr_clause(self, section: str, etp_data: str, risks_data: str) -> str:
+        """
+        Gera uma cláusula específica do TR baseada no ETP e Riscos.
+        """
+        prompts = {
+            "obrigacoes": "Escreva as 'Obrigações da Contratada' e 'Obrigações da Contratante' detalhadas, focando em prazos, qualidade e garantias.",
+            "pagamento": "Escreva a cláusula de 'Critérios de Pagamento' e 'Liquidação', seguindo a Lei 14.133/21 (pagamento vinculado à entrega/aceite).",
+            "execucao": "Escreva a 'Estratégia de Execução' e 'Recebimento do Objeto' (Provisório e Definitivo).",
+            "qualificacao": "Escreva os requisitos de 'Habilitação Técnica' e 'Qualificação Econômica' necessários para este objeto."
+        }
+        
+        instruction = prompts.get(section, "Escreva uma cláusula técnica e jurídica adequada para Termo de Referência.")
+
+        prompt = f"""
+        Role: Advogado Especialista em Licitações e Contratos Administrativos.
+        Tarefa: Redigir a cláusula de TR especificada abaixo.
+        
+        Contexto do ETP (Planejamento):
+        {etp_data}
+        
+        Contexto dos Riscos (Para mitigar nas obrigações):
+        {risks_data}
+        
+        Sua Missão:
+        {instruction}
+        
+        Saída: Texto formatado em Markdown, pronto para copiar e colar no documento. Use linguagem formal jurídica.
+        """
+        return self._generate_safe_content(prompt)
+    
     # --- Método Auxiliar Privado (DRY) ---
     def _generate_safe_content(self, prompt: str) -> str:
         """

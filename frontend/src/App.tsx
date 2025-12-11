@@ -5,6 +5,7 @@ import { MeusProcessos } from './pages/MeusProcessos';
 import { DfdForm } from './pages/DfdForm';
 import { EtpForm } from './pages/EtpForm';
 import { Planejamento } from './pages/Planejamento'; 
+import { TrForm } from './pages/TrForm';
 
 function App() {
   return (
@@ -15,12 +16,9 @@ function App() {
           <Route path="/processos" element={<MeusProcessos />} />
           <Route path="/novo-dfd" element={<DfdForm />} />
           <Route path="/dfd/:id" element={<DfdForm />} />
-          
-          {/* Rota de Planejamento */}
           <Route path="/planejamento" element={<Planejamento />} />
-
-          {/* 2. Registre a nova rota aqui */}
           <Route path="/etp/:dfdId" element={<EtpForm />} />
+          <Route path="/tr/:etpId" element={<TrForm />} />
         </Routes>
       </Layout>
     </BrowserRouter>

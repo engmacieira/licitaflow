@@ -62,13 +62,23 @@ class ETPCreate(ETPBase):
 class ETPUpdate(ETPBase):
     pass
 
+class DfdSummaryResponse(BaseModel):
+    id: int
+    numero: Optional[int]
+    ano: int
+    objeto: Optional[str]
+    justificativa: Optional[str]
+    unidade_requisitante_id: int
+    
 class ETPResponse(ETPBase):
     id: int
     is_active: bool
     
-    # LISTAS (Fundamental estarem aqui)
     itens: List[ItemETPResponse] = []
     equipe: List[ETPEquipeResponse] = []
     dotacoes: List[ETPDotacaoResponse] = []
+    
+    # ADICIONADO: Lista dos DFDs que compõem este planejamento
+    dfds: List[DfdSummaryResponse] = [] 
     
     model_config = ConfigDict(from_attributes=True)

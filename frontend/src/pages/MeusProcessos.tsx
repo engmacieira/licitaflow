@@ -56,7 +56,11 @@ export function MeusProcessos() {
         // Grid Responsivo
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
             {processos.map(dfd => (
-                <ProcessoCard key={dfd.id} dfd={dfd} />
+                <ProcessoCard 
+                    key={dfd.id} 
+                    dfd={dfd} 
+                    onDelete={loadData} // <--- Passando a função de recarregar
+                />
             ))}
         </div>
       )}

@@ -63,3 +63,11 @@ def update_dfd_item_prices(itens: List[DFDItemUpdatePrice], db: Session = Depend
     """Recebe uma lista de {id, valor} e atualiza no banco."""
     DFDRepository.update_item_prices(db, itens)
     return {"message": "Preços atualizados com sucesso"}
+
+@router.delete("/{dfd_id}")
+def deletar_dfd(dfd_id: int, db: Session = Depends(get_db)):
+    try:
+        DFDRepository.delete(db, dfd_id)
+        return {"message": "DFD enviado para lixeira."}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware # <--- 1. Importar isso
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from app.routers import dfd_router, etp_router, ai_router, cadastro_router
+from app.routers import dfd_router, etp_router, ai_router, cadastro_router, risk_router, tr_router, system_router
 
 app = FastAPI(
     title="LicitaFlow API",
@@ -32,6 +32,9 @@ app.include_router(dfd_router.router)
 app.include_router(etp_router.router)
 app.include_router(ai_router.router)
 app.include_router(cadastro_router.router)
+app.include_router(risk_router.router)
+app.include_router(tr_router.router)
+app.include_router(system_router.router)
 
 # 3. Rota Raiz (Frontend)
 # Ao invés de retornar JSON, retornamos o arquivo HTML principal

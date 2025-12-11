@@ -72,3 +72,5 @@ class GenerateETPViabilityRequest(BaseModel):
 class GenerateObjectResponse(BaseModel):
     result: str
     
+class GenerateConsolidatedRequest(BaseModel):
+    text_list: list[str]

@@ -45,10 +45,6 @@ class DFDRepository:
     @staticmethod
     def get_all(db: Session, skip: int = 0, limit: int = 100):
         return db.query(DFD).filter(DFD.is_active == True).offset(skip).limit(limit).all()
-
-    @staticmethod
-    def get_by_id(db: Session, dfd_id: int):
-        return db.query(DFD).filter(DFD.id == dfd_id, DFD.is_active == True).first()
     
     @staticmethod
     def update(db: Session, dfd_id: int, dfd_data: dict):
@@ -128,3 +124,20 @@ class DFDRepository:
             joinedload(DFD.dotacoes).joinedload(DFDDotacao.dotacao), # Carrega dotações + nomes
             joinedload(DFD.equipe).joinedload(DFDEquipe.agente)      # Carrega equipe + nomes
         ).filter(DFD.id == dfd_id, DFD.is_active == True).first()
+        
+    @staticmethod
+    def delete(db: Session, dfd_id: int):
+        """
+        Realiza o Soft Delete. 
+        Retorna False se não puder excluir (ex: já está em um ETP).
+        """
+        dfd = db.query(DFD).filter(DFD.id == dfd_id).first()
+        if not dfd: return False
+        
+        # Trava de Segurança: Não apaga DFD que está em uso no planejamento
+        if dfd.etp_id is not None:
+            raise Exception("Não é possível excluir este DFD pois ele faz parte de um ETP. Desvincule-o primeiro.")
+            
+        dfd.is_active = False
+        db.commit()
+        return True
